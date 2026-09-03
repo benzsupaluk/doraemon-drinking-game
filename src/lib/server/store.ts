@@ -268,56 +268,67 @@ const TOKEN_VARS = ['UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN'] as const
  *
  * Surrounding quotes are the common one: `.env` files quote their values, so
  * copying a line out of one and pasting it into Vercel stores the quotes as
- * part of the value. The Upstash client then rejects `"https://...` because it
- * does not start with `https`, and throws — which is a very confusing way to
- * find out you have a stray quote.
+ * part of the value.
  */
 function cleanEnvValue(raw: string | undefined) {
     if (!raw) return undefined
-    return raw.trim().replace(/^['"]|['"]$/g, '').trim()
+    return raw
+        .trim()
+        .replace(/^['"]|['"]$/g, '')
+        .trim()
+}
+
+/** The REST endpoint is an https URL. A `rediss://` string is the TCP one. */
+function isRestUrl(value: string) {
+    return /^https:\/\//i.test(value)
 }
 
 /**
- * Find the first of these variables that actually holds a value.
+ * Find the first variable in `names` that holds a usable value.
  *
- * Checking for emptiness matters, not just `??`: Vercel lets you create an
- * environment variable with an empty string, and with `??` that empty value
- * would shadow a working one later in the list, quietly dropping the app to the
- * in-memory store.
+ * `accept` matters as much as emptiness. Upstash hands out two different
+ * things: an https REST endpoint and a `rediss://` TCP connection string, and
+ * only the first works here. Pasting the TCP one into UPSTASH_REDIS_REST_URL is
+ * an easy mistake, and because that name is checked first it would otherwise
+ * shadow a perfectly good KV_REST_API_URL and take the whole app down. So a
+ * candidate that fails `accept` is skipped rather than accepted and later
+ * thrown on, and we remember it so /api/health can point at it.
  */
-function firstSet(names: readonly string[]) {
+function firstSet(names: readonly string[], accept?: (value: string) => boolean) {
+    const rejected: string[] = []
     for (const name of names) {
         const value = cleanEnvValue(process.env[name])
-        if (value) return { name, value }
+        if (!value) continue
+        if (accept && !accept(value)) {
+            rejected.push(name)
+            continue
+        }
+        return { name, value, rejected }
     }
-    return null
+    return { name: null, value: null, rejected }
 }
 
-/**
- * The variable names depend on which integration was added on Vercel:
- * - Upstash marketplace -> UPSTASH_REDIS_REST_URL / _TOKEN
- * - Vercel KV           -> KV_REST_API_URL / KV_REST_API_TOKEN
- *
- * Both point at the same REST endpoint, so either pair is accepted.
- *
- * KV_URL / REDIS_URL are TCP connection strings (`rediss://`). They cannot be
- * used by @upstash/redis, and TCP pools are a poor fit for serverless anyway.
- */
 export function inspectRedisEnv() {
-    const url = firstSet(URL_VARS)
+    const url = firstSet(URL_VARS, isRestUrl)
     const token = firstSet(TOKEN_VARS)
     return {
-        url,
-        token,
-        /** Safe to expose: these are variable names, not their values. */
-        urlVar: url?.name ?? null,
-        tokenVar: token?.name ?? null,
+        urlValue: url.value,
+        tokenValue: token.value,
+        /** Safe to expose: variable names only, never their values. */
+        urlVar: url.name,
+        tokenVar: token.name,
+        /**
+         * Variables that were set but unusable. Only the NAME is kept: the
+         * value can be a `rediss://` string carrying the database password, and
+         * /api/health is public.
+         */
+        ignoredUrlVars: url.rejected,
     }
 }
 
 function readRedisEnv() {
-    const { url, token } = inspectRedisEnv()
-    return url && token ? { url: url.value, token: token.value } : null
+    const { urlValue, tokenValue } = inspectRedisEnv()
+    return urlValue && tokenValue ? { url: urlValue, token: tokenValue } : null
 }
 
 /**
@@ -344,7 +355,10 @@ export function getStore(): RoomStore {
             )
             return store
         } catch (error) {
-            storeInitError = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+            // Deliberately not including the error's own message: the client
+            // echoes the URL it was given, which can be a `rediss://` string
+            // containing the database password, and /api/health is public.
+            storeInitError = 'Could not create the Redis client from the configured credentials.'
             console.error('[doraemon] could not create the Redis client:', error)
         }
     }
@@ -361,11 +375,17 @@ export function getStore(): RoomStore {
 
 /** Diagnostics for /api/health. Safe to call at any time; never throws. */
 export function storeStatus() {
-    const { urlVar, tokenVar } = inspectRedisEnv()
+    const { urlVar, tokenVar, ignoredUrlVars } = inspectRedisEnv()
     const kind = getStore().kind
     return {
         store: kind,
+        // Names only. Never expose the values: they are credentials.
         env: { url: urlVar, token: tokenVar },
+        /**
+         * Set but unusable, e.g. a `rediss://` TCP string pasted into a REST
+         * URL variable. Delete these, or set them to the https endpoint.
+         */
+        ignoredUrlVars,
         initError: storeInitError,
         /** True when this deployment cannot support multiplayer as configured. */
         misconfigured: kind === 'memory' && !!process.env.VERCEL,
