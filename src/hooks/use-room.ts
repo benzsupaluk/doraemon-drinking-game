@@ -54,6 +54,11 @@ export function useRoom(code: string) {
     /** Lets effects trigger the newest poll without depending on it. */
     const pollRef = useRef<() => void>(() => {})
 
+    /**
+     * Adopt a room state. Exposed as `adoptState` so a caller that already has a
+     * fresh state (the join response, say) can install it right away instead of
+     * waiting for the next poll to catch up.
+     */
     const applyState = useCallback((next: RoomState) => {
         // Drop responses that are older than what we already have, otherwise
         // the screen flickers backwards.
@@ -181,5 +186,5 @@ export function useRoom(code: string) {
         [code, applyState]
     )
 
-    return { state, connection, error, setError, act, fatal }
+    return { state, connection, error, setError, act, fatal, adoptState: applyState }
 }

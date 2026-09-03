@@ -13,7 +13,8 @@ import type { RoomState } from '@/lib/types'
 interface Props {
     code: string
     state: RoomState
-    onJoined: (playerId: string) => void
+    /** Passes the state from the join response so the caller need not wait for a poll. */
+    onJoined: (playerId: string, joined: RoomState) => void
 }
 
 export function JoinForm({ code, state, onJoined }: Props) {
@@ -37,9 +38,9 @@ export function JoinForm({ code, state, onJoined }: Props) {
         setError(null)
         try {
             unlockAudio()
-            const { playerId } = await joinRoom(code, name)
+            const { playerId, state: joined } = await joinRoom(code, name)
             saveLastName(name.trim())
-            onJoined(playerId)
+            onJoined(playerId, joined)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'เข้าวงไม่สำเร็จ')
             setLoading(false)
