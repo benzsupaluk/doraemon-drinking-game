@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui'
 import { SUIT_SYMBOL } from '@/lib/rules'
 
 export function FinishedView({ state, me, connection, error, act }: ViewProps) {
+    const router = useRouter()
     const [busy, setBusy] = useState(false)
 
     const ranking = [...state.players].sort((a, b) => b.cardsDrawn - a.cardsDrawn)
@@ -100,7 +102,7 @@ export function FinishedView({ state, me, connection, error, act }: ViewProps) {
                         รอหัวตี้เริ่มรอบใหม่...
                     </div>
                 )}
-                <Button variant="ghost" onClick={() => (window.location.href = '/')} className="w-full">
+                <Button variant="ghost" onClick={() => router.push('/')} className="w-full">
                     ออกจากวง
                 </Button>
             </div>

@@ -20,10 +20,21 @@ interface Props {
     flipped: boolean
     /** ลำดับไพ่ K ที่เปิด (1-4) ใช้เปลี่ยนข้อความบนไพ่ K */
     kingCount?: number
+    /** ข้อความบนหลังไพ่ เช่น "แตะที่ไพ่เพื่อเปิด" */
+    backHint?: string
+    /** ให้ไอคอนบนหลังไพ่ขยับ ใช้ตอนถึงตาผู้เล่นคนนี้ */
+    nudge?: boolean
     className?: string
 }
 
-export function PlayingCard({ card, flipped, kingCount = 0, className = '' }: Props) {
+export function PlayingCard({
+    card,
+    flipped,
+    kingCount = 0,
+    backHint,
+    nudge = false,
+    className = '',
+}: Props) {
     const rule = card ? CARD_RULES[card.rank] : null
     const tone = rule ? TONE_STYLE[rule.tone] : TONE_STYLE.special
     const kingStep = card?.rank === 'K' ? KING_STEPS[Math.min(Math.max(kingCount, 1), 4) - 1] : null
@@ -33,13 +44,16 @@ export function PlayingCard({ card, flipped, kingCount = 0, className = '' }: Pr
             <div className={`card-3d aspect-5/7 w-full ${flipped ? 'is-flipped' : ''}`}>
                 {/* หลังไพ่ */}
                 <div className="card-face card-back-art flex items-center justify-center border-4 border-white/85 shadow-[0_24px_50px_-18px_rgba(0,0,0,0.75)]">
-                    <div className="relative flex flex-col items-center gap-3">
-                        <BellMark className="size-20 drop-shadow-lg" animated />
+                    <div className="relative flex flex-col items-center gap-3 px-5">
+                        <BellMark
+                            className={`size-20 drop-shadow-lg ${nudge ? 'animate-nudge' : ''}`}
+                            animated={!nudge}
+                        />
                         <p
-                            className="text-xl font-bold tracking-wide text-white drop-shadow"
+                            className="text-center text-lg font-bold tracking-wide text-white drop-shadow"
                             style={{ fontFamily: 'var(--font-display)' }}
                         >
-                            โดรามอน
+                            {backHint ?? 'โดรามอน'}
                         </p>
                     </div>
                     {/* แสงวิ่งผ่านให้ดูมีชีวิต */}

@@ -6,7 +6,7 @@
  * iOS ไม่รองรับ navigator.vibrate เลยต้องมีเสียงเป็นตัวหลัก
  */
 
-const SOUND_KEY = 'doraemon:sound'
+import { isSoundEnabled } from './session'
 
 let ctx: AudioContext | null = null
 
@@ -23,22 +23,6 @@ function getContext(): AudioContext | null {
 export function unlockAudio() {
     const audio = getContext()
     if (audio && audio.state === 'suspended') void audio.resume()
-}
-
-export function isSoundEnabled(): boolean {
-    try {
-        return localStorage.getItem(SOUND_KEY) !== 'off'
-    } catch {
-        return true
-    }
-}
-
-export function setSoundEnabled(enabled: boolean) {
-    try {
-        localStorage.setItem(SOUND_KEY, enabled ? 'on' : 'off')
-    } catch {
-        // ไม่เป็นไร
-    }
 }
 
 interface ToneOptions {

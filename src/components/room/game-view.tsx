@@ -1,44 +1,31 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PlayerStrip } from './player-strip'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
-import { BellMark } from '@/components/bell-mark'
 import { DeckStack, PlayingCard } from '@/components/playing-card'
 import { Button } from '@/components/ui'
 import { CARD_RULES, SUIT_SYMBOL } from '@/lib/rules'
 import { unlockAudio } from '@/lib/feedback'
-import type { Card } from '@/lib/types'
 
 export function GameView({ state, me, connection, error, setError, act, isMyTurn }: ViewProps) {
-    const [displayCard, setDisplayCard] = useState<Card | null>(state.currentCard)
-    const [flipped, setFlipped] = useState(!!state.currentCard)
     const [busy, setBusy] = useState(false)
 
     const currentPlayer = state.players[state.turnIndex]
     const revealed = state.phase === 'revealed'
-    const cardId = state.currentCard?.id
 
-    // state ทั้งก้อนมาใหม่ทุกครั้งที่มี event ทำให้ object ไพ่เปลี่ยน identity
-    // เลยต้องอ่านผ่าน ref และผูก effect ไว้กับ id เท่านั้น ไม่งั้นไพ่จะพลิกใหม่ทุก event
-    const cardRef = useRef(state.currentCard)
-    cardRef.current = state.currentCard
-
-    // คุมจังหวะพลิกไพ่: ต้อง mount ด้วยหลังไพ่ก่อน 1 เฟรม แล้วค่อยพลิก transition จะได้ทำงาน
-    useEffect(() => {
-        const card = cardRef.current
-        if (card) {
-            setDisplayCard(card)
-            setFlipped(false)
-            const timer = setTimeout(() => setFlipped(true), 60)
-            return () => clearTimeout(timer)
-        }
-        // จบตา: พลิกกลับก่อน แล้วค่อยถอดไพ่ออกตอน animation จบ
-        setFlipped(false)
-        const timer = setTimeout(() => setDisplayCard(null), 500)
-        return () => clearTimeout(timer)
-    }, [cardId])
+    /**
+     * ไพ่บนหน้าการ์ดหาได้จาก state ของ server ทั้งหมด ไม่ต้องเก็บ state ในนี้เลย
+     *
+     * ตอนจบตา server เคลียร์ `currentCard` แต่ `log[0]` ยังเป็นไพ่ใบล่าสุดอยู่
+     * เลยใช้เป็นหน้าไพ่ระหว่างที่การ์ดกำลังพลิกกลับ ไม่งั้นไพ่จะหายไปทั้งใบทันที
+     *
+     * ส่วน animation เกิดจากการที่ class `is-flipped` เพิ่ม/หายไปบน element ที่ mount อยู่แล้ว
+     * CSS transition จัดการให้เอง ไม่ต้องมี timer หรือ ref มาคุมจังหวะ
+     */
+    const faceCard = state.currentCard ?? state.log[0]?.card ?? null
+    const flipped = revealed && !!state.currentCard
 
     useEffect(() => {
         if (!error) return
@@ -58,7 +45,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
         void run({ type: 'draw' })
     }
 
-    const rule = displayCard ? CARD_RULES[displayCard.rank] : null
+    const rule = faceCard ? CARD_RULES[faceCard.rank] : null
     const needsBuddy = isMyTurn && state.awaitingBuddy
 
     return (
@@ -97,7 +84,8 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
             {/* พื้นที่ไพ่ */}
             <div className="relative flex flex-1 items-center justify-center py-2">
                 <div className="relative w-full max-w-64">
-                    {!displayCard && (
+                    {/* กองไพ่โผล่ออกมาข้างหลังตอนที่ไพ่ยังคว่ำอยู่ ให้เห็นว่าสำรับยังหนา */}
+                    {!flipped && (
                         <DeckStack
                             count={state.deckCount}
                             className="pointer-events-none absolute inset-0"
@@ -109,36 +97,27 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                         aria-label={isMyTurn && !revealed ? 'เปิดไพ่' : 'ไพ่กลางวง'}
                         className="relative z-10 block w-full transition-transform duration-200 enabled:active:scale-[0.97] disabled:cursor-default"
                     >
-                        {displayCard ? (
-                            <PlayingCard card={displayCard} flipped={flipped} kingCount={state.kingCount} />
-                        ) : (
-                            <div className="card-stage aspect-5/7 w-full">
-                                <div className="card-back-art relative flex size-full flex-col items-center justify-center gap-3 rounded-[1.25rem] border-4 border-white/85 shadow-[0_24px_50px_-18px_rgba(0,0,0,0.75)]">
-                                    <BellMark
-                                        className={`size-16 drop-shadow-lg ${isMyTurn ? 'animate-nudge' : ''}`}
-                                    />
-                                    <p
-                                        className="px-4 text-center text-base font-bold text-white/95"
-                                        style={{ fontFamily: 'var(--font-display)' }}
-                                    >
-                                        {isMyTurn ? 'แตะที่ไพ่เพื่อเปิด' : `รอ ${currentPlayer?.name ?? ''} เปิดไพ่`}
-                                    </p>
-                                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.25rem]">
-                                        <div className="animate-shine absolute top-0 -left-1/2 h-[200%] w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <PlayingCard
+                            card={faceCard}
+                            flipped={flipped}
+                            kingCount={state.kingCount}
+                            nudge={isMyTurn && !revealed}
+                            backHint={
+                                isMyTurn
+                                    ? 'แตะที่ไพ่เพื่อเปิด'
+                                    : `รอ ${currentPlayer?.name ?? ''} เปิดไพ่`
+                            }
+                        />
                     </button>
                 </div>
             </div>
 
             {/* ผลของไพ่ที่เปิด */}
-            {revealed && displayCard && rule && (
+            {revealed && faceCard && rule && (
                 <div className="animate-rise glass rounded-2xl px-4 py-3 text-center text-sm">
                     <p className="font-bold text-dora-yellow" style={{ fontFamily: 'var(--font-display)' }}>
-                        {currentPlayer?.name} เปิดได้ {displayCard.rank}
-                        {SUIT_SYMBOL[displayCard.suit]}
+                        {currentPlayer?.name} เปิดได้ {faceCard.rank}
+                        {SUIT_SYMBOL[faceCard.suit]}
                     </p>
                     <p className="mt-0.5 text-dora-cream/80">
                         {rule.sips > 0

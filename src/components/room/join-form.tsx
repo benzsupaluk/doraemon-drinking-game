@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { BellMark } from '@/components/bell-mark'
 import { Button } from '@/components/ui'
 import { joinRoom } from '@/lib/api'
 import { unlockAudio } from '@/lib/feedback'
-import { loadLastName, saveLastName } from '@/lib/session'
+import { useRememberedName } from '@/hooks/use-session'
+import { saveLastName } from '@/lib/session'
 import type { RoomState } from '@/lib/types'
 
 interface Props {
@@ -15,13 +17,12 @@ interface Props {
 }
 
 export function JoinForm({ code, state, onJoined }: Props) {
-    const [name, setName] = useState('')
+    const router = useRouter()
+    const remembered = useRememberedName()
+    const [typed, setTyped] = useState<string | null>(null)
+    const name = typed ?? remembered
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        setName(loadLastName())
-    }, [])
 
     const full = state.players.length >= state.maxPlayers
     const started = state.status !== 'lobby'
@@ -84,7 +85,7 @@ export function JoinForm({ code, state, onJoined }: Props) {
                         <p className="text-sm text-dora-cream/70">
                             บอกหัวตี้ให้เปิดวงใหม่ หรือสร้างวงของคุณเองก็ได้
                         </p>
-                        <Button variant="ghost" onClick={() => (window.location.href = '/')} className="w-full">
+                        <Button variant="ghost" onClick={() => router.push('/')} className="w-full">
                             สร้างวงใหม่
                         </Button>
                     </div>
@@ -97,7 +98,7 @@ export function JoinForm({ code, state, onJoined }: Props) {
                             <input
                                 id="player-name"
                                 value={name}
-                                onChange={(event) => setName(event.target.value)}
+                                onChange={(event) => setTyped(event.target.value)}
                                 onKeyDown={(event) => event.key === 'Enter' && handleJoin()}
                                 maxLength={16}
                                 placeholder="เช่น ไจแอนท์"

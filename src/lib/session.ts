@@ -1,43 +1,69 @@
 const KEY_PREFIX = 'doraemon:player:'
 const NAME_KEY = 'doraemon:last-name'
+const SOUND_KEY = 'doraemon:sound'
 
-/** จำ playerId ต่อห้อง เพื่อให้ refresh แล้วยังอยู่ในวงเดิม */
-export function savePlayerId(code: string, playerId: string) {
-    try {
-        localStorage.setItem(KEY_PREFIX + code.toUpperCase(), playerId)
-    } catch {
-        // โหมดส่วนตัวของ Safari อาจเขียนไม่ได้ — ไม่เป็นไร แค่ต้องใส่ชื่อใหม่
+/**
+ * localStorage เป็น external store ของ React
+ * เลยต้องมี subscribe/emit เพื่อให้อ่านผ่าน `useSyncExternalStore` ได้
+ * (อ่านใน useEffect แล้ว setState จะทำให้ render ซ้อนกันโดยไม่จำเป็น)
+ */
+const listeners = new Set<() => void>()
+
+export function subscribeSession(listener: () => void) {
+    listeners.add(listener)
+    return () => {
+        listeners.delete(listener)
     }
 }
 
-export function loadPlayerId(code: string): string | null {
+function emit() {
+    for (const listener of listeners) listener()
+}
+
+function read(key: string): string | null {
     try {
-        return localStorage.getItem(KEY_PREFIX + code.toUpperCase())
+        return localStorage.getItem(key)
     } catch {
+        // โหมดส่วนตัวของ Safari อ่านไม่ได้ — ถือว่าไม่มีค่าเก็บไว้
         return null
     }
 }
 
-export function clearPlayerId(code: string) {
+function write(key: string, value: string) {
     try {
-        localStorage.removeItem(KEY_PREFIX + code.toUpperCase())
+        localStorage.setItem(key, value)
+    } catch {
+        // เขียนไม่ได้ก็ไม่เป็นไร แค่จำข้ามรอบไม่ได้
+    }
+    emit()
+}
+
+function drop(key: string) {
+    try {
+        localStorage.removeItem(key)
     } catch {
         // ไม่เป็นไร
     }
+    emit()
 }
 
-export function saveLastName(name: string) {
-    try {
-        localStorage.setItem(NAME_KEY, name)
-    } catch {
-        // ไม่เป็นไร
-    }
-}
+/* --------------------------- playerId ต่อห้อง --------------------------- */
 
-export function loadLastName(): string {
-    try {
-        return localStorage.getItem(NAME_KEY) ?? ''
-    } catch {
-        return ''
-    }
-}
+export const savePlayerId = (code: string, playerId: string) =>
+    write(KEY_PREFIX + code.toUpperCase(), playerId)
+
+export const loadPlayerId = (code: string) => read(KEY_PREFIX + code.toUpperCase())
+
+export const clearPlayerId = (code: string) => drop(KEY_PREFIX + code.toUpperCase())
+
+/* ------------------------------ ชื่อล่าสุด ------------------------------ */
+
+export const saveLastName = (name: string) => write(NAME_KEY, name)
+
+export const loadLastName = () => read(NAME_KEY) ?? ''
+
+/* -------------------------------- เสียง -------------------------------- */
+
+export const isSoundEnabled = () => read(SOUND_KEY) !== 'off'
+
+export const setSoundEnabled = (enabled: boolean) => write(SOUND_KEY, enabled ? 'on' : 'off')

@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
     try {
         const body = await readJson(request)
-        const { room, playerId } = createRoom(String(body.name ?? ''), body.maxPlayers)
-        return NextResponse.json({ state: room.state, playerId })
+        const { state, playerId } = await createRoom(String(body.name ?? ''), body.maxPlayers)
+        return NextResponse.json({ state, playerId })
     } catch (error) {
         return errorResponse(error)
     }

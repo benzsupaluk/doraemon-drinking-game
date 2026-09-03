@@ -1,20 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
 import { BellMark } from '@/components/bell-mark'
 import { Button } from '@/components/ui'
 import { playTap } from '@/lib/feedback'
 
-export function LobbyView({ state, me, connection, error, setError, act }: ViewProps) {
-    const [inviteUrl, setInviteUrl] = useState('')
+export function LobbyView({ state, me, connection, error, setError, act, origin }: ViewProps) {
     const [copied, setCopied] = useState(false)
     const [starting, setStarting] = useState(false)
 
-    useEffect(() => {
-        setInviteUrl(`${window.location.origin}/room/${state.code}`)
-    }, [state.code])
+    // origin มาจาก request header ฝั่ง server ลิงก์จึงถูกต้องตั้งแต่ HTML ชุดแรก
+    const inviteUrl = `${origin}/room/${state.code}`
 
     const full = state.players.length >= state.maxPlayers
     const canStart = state.players.length >= 2
@@ -75,7 +73,7 @@ export function LobbyView({ state, me, connection, error, setError, act }: ViewP
                     <span className="text-xs text-dora-cream/50">แชร์ให้ทุกคนในวง</span>
                 </div>
                 <p className="no-scrollbar overflow-x-auto rounded-2xl bg-black/25 px-4 py-3 font-mono text-xs whitespace-nowrap text-dora-sky select-all">
-                    {inviteUrl || '...'}
+                    {inviteUrl}
                 </p>
                 <div className="flex gap-2">
                     <Button variant="primary" onClick={handleShare} silent className="min-w-0 flex-1">

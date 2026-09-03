@@ -1,29 +1,30 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { BellMark, WhiskerLine } from '@/components/bell-mark'
 import { RulesSheet } from '@/components/rules-sheet'
 import { Button } from '@/components/ui'
 import { createRoom } from '@/lib/api'
 import { playStart, unlockAudio } from '@/lib/feedback'
-import { loadLastName, savePlayerId, saveLastName } from '@/lib/session'
+import { useRememberedName } from '@/hooks/use-session'
+import { savePlayerId, saveLastName } from '@/lib/session'
 
 const MIN_PLAYERS = 2
 const MAX_PLAYERS = 12
 
 export default function HomePage() {
     const router = useRouter()
-    const [name, setName] = useState('')
+    // ชื่อที่จำไว้มาจาก localStorage ส่วน typed คือที่ผู้ใช้พิมพ์ทับ
+    // แยกกันแบบนี้เพื่อ prefill ได้โดยไม่ต้อง setState ใน effect
+    const remembered = useRememberedName()
+    const [typed, setTyped] = useState<string | null>(null)
+    const name = typed ?? remembered
     const [maxPlayers, setMaxPlayers] = useState(4)
     const [joinCode, setJoinCode] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [rulesOpen, setRulesOpen] = useState(false)
-
-    useEffect(() => {
-        setName(loadLastName())
-    }, [])
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -83,7 +84,7 @@ export default function HomePage() {
                     <input
                         id="host-name"
                         value={name}
-                        onChange={(event) => setName(event.target.value)}
+                        onChange={(event) => setTyped(event.target.value)}
                         maxLength={16}
                         placeholder="เช่น โนบิตะ"
                         autoComplete="off"

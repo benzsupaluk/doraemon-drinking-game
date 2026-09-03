@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { RulesSheet } from '@/components/rules-sheet'
-import { isSoundEnabled, setSoundEnabled, unlockAudio } from '@/lib/feedback'
+import { useSoundEnabled } from '@/hooks/use-session'
+import { unlockAudio } from '@/lib/feedback'
+import { setSoundEnabled } from '@/lib/session'
 
 interface Props {
     code: string
@@ -12,17 +14,11 @@ interface Props {
 
 export function RoomHeader({ code, connection, right }: Props) {
     const [rulesOpen, setRulesOpen] = useState(false)
-    const [sound, setSound] = useState(true)
-
-    useEffect(() => {
-        setSound(isSoundEnabled())
-    }, [])
+    const sound = useSoundEnabled()
 
     const toggleSound = () => {
         unlockAudio()
-        const next = !sound
-        setSound(next)
-        setSoundEnabled(next)
+        setSoundEnabled(!sound)
     }
 
     return (

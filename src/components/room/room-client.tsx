@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useMemo, useRef } from 'react'
 import { FinishedView } from './finished-view'
 import { GameView } from './game-view'
 import { JoinForm } from './join-form'
@@ -8,17 +9,13 @@ import { LobbyView } from './lobby-view'
 import { useRoom } from '@/hooks/use-room'
 import { CARD_RULES } from '@/lib/rules'
 import { notifyMyTurn, playDrink, playFlip, playJoin, unlockAudio } from '@/lib/feedback'
-import { clearPlayerId, loadPlayerId, savePlayerId } from '@/lib/session'
+import { usePlayerId } from '@/hooks/use-session'
+import { clearPlayerId, savePlayerId } from '@/lib/session'
 
-export function RoomClient({ code }: { code: string }) {
+export function RoomClient({ code, origin }: { code: string; origin: string }) {
     const { state, connection, error, setError, act } = useRoom(code)
-    const [playerId, setPlayerId] = useState<string | null>(null)
-    const [ready, setReady] = useState(false)
-
-    useEffect(() => {
-        setPlayerId(loadPlayerId(code))
-        setReady(true)
-    }, [code])
+    // อ่านตรงจาก localStorage ผ่าน external store — ไม่ต้อง setState ใน effect
+    const playerId = usePlayerId(code)
 
     // เบราว์เซอร์บล็อกเสียงจนกว่าจะมี gesture ของผู้ใช้
     // คนที่กลับเข้าห้องเดิมจาก localStorage อาจยังไม่เคยกดปุ่มอะไรเลย เลยดักการแตะครั้งแรกไว้
@@ -33,11 +30,11 @@ export function RoomClient({ code }: { code: string }) {
         [state, playerId]
     )
 
-    // playerId ที่เก็บไว้ใช้ไม่ได้แล้ว (ห้ามรีสตาร์ต / เราถูกเตะออก) → ให้ใส่ชื่อใหม่
+    // playerId ที่เก็บไว้ใช้ไม่ได้แล้ว (ห้องหายไป / เราถูกเตะออก) → ล้างทิ้งให้ใส่ชื่อใหม่
+    // ลบออกจาก store แล้ว usePlayerId จะอ่านได้ null เอง
     useEffect(() => {
         if (!state || !playerId || me) return
         clearPlayerId(code)
-        setPlayerId(null)
     }, [state, playerId, me, code])
 
     const isMyTurn = !!state && !!me && state.players[state.turnIndex]?.id === me.id
@@ -46,12 +43,7 @@ export function RoomClient({ code }: { code: string }) {
     useCardSounds(state?.currentCard?.id ?? null, state?.currentCard?.rank ?? null)
     usePlayerJoinSound(state?.players.length ?? 0, state?.status === 'lobby')
 
-    const handleJoined = (id: string) => {
-        savePlayerId(code, id)
-        setPlayerId(id)
-    }
-
-    if (!ready) return <LoadingScreen label="กำลังเตรียมวง..." />
+    const handleJoined = (id: string) => savePlayerId(code, id)
 
     if (!state) {
         return connection === 'lost' ? (
@@ -65,7 +57,7 @@ export function RoomClient({ code }: { code: string }) {
         return <JoinForm code={code} state={state} onJoined={handleJoined} />
     }
 
-    const shared = { state, me, connection, error, setError, act, isMyTurn }
+    const shared = { state, me, connection, error, setError, act, isMyTurn, origin }
 
     if (state.status === 'lobby') return <LobbyView {...shared} />
     if (state.status === 'finished') return <FinishedView {...shared} />
@@ -124,13 +116,13 @@ function ErrorScreen({ code }: { code: string }) {
             <p className="text-sm text-dora-cream/70">
                 วงนี้อาจปิดไปแล้ว หรือรหัสไม่ถูกต้อง ลองขอลิงก์จากหัวตี้อีกครั้ง
             </p>
-            <a
+            <Link
                 href="/"
                 className="glass rounded-2xl px-6 py-3 font-bold text-dora-cream"
                 style={{ fontFamily: 'var(--font-display)' }}
             >
                 กลับหน้าแรก
-            </a>
+            </Link>
         </main>
     )
 }
