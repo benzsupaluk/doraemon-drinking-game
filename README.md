@@ -167,13 +167,27 @@ In the Vercel project: **Storage** → **Create Database** → **Upstash for Red
 name it → choose a region close to your players (`ap-southeast-1` in Singapore is
 a good pick for Thailand) → **Connect** it to the project.
 
-Vercel injects the environment variables for you. The app accepts either naming
-scheme:
+Vercel injects the environment variables for you — **there is nothing to type in
+by hand.** You'll see several of them; the app only needs two:
 
-| Environment variables                                 | Source               |
-| ----------------------------------------------------- | -------------------- |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Upstash integration  |
-| `KV_REST_API_URL` / `KV_REST_API_TOKEN`               | Vercel KV (older)    |
+| Variable                      | What it is                                        | Used |
+| ----------------------------- | ------------------------------------------------- | ---- |
+| `KV_REST_API_URL`             | HTTPS endpoint for the Upstash **REST** API       | ✅   |
+| `KV_REST_API_TOKEN`           | Bearer token with **read + write**                | ✅   |
+| `KV_REST_API_READ_ONLY_TOKEN` | Same, read-only                                   | ❌   |
+| `KV_URL`                      | Redis **TCP** connection string (`rediss://…`)    | ❌   |
+| `REDIS_URL`                   | Alias of `KV_URL`                                 | ❌   |
+
+Depending on which integration you pick, the same REST endpoint may instead be
+exposed under Upstash's own names — `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN`. Those are **the same two values**, and the app accepts
+either pair, so whichever set you get, it just works.
+
+`KV_URL` / `REDIS_URL` are deliberately unused: `@upstash/redis` speaks HTTP, and
+raw TCP connection pools behave badly in serverless (each cold start opens a new
+socket). **Don't add any variable by hand** — in particular, creating a blank
+`UPSTASH_REDIS_REST_URL` is pointless; the app skips empty values, but it's still
+just noise.
 
 Upstash's free tier (10,000 commands/day) is plenty for playing with friends.
 
@@ -189,12 +203,20 @@ curl https://<your-project>.vercel.app/api/health
 You want:
 
 ```json
-{ "ok": true, "store": "redis", "onVercel": true }
+{
+  "ok": true,
+  "store": "redis",
+  "onVercel": true,
+  "env": { "url": "KV_REST_API_URL", "token": "KV_REST_API_TOKEN" }
+}
 ```
 
-If it says `"store": "memory"`, the environment variables aren't reaching the
-app — confirm the database is connected to this project and redeploy. The
-function logs also print a warning in that case.
+`env` reports **which variable names** were found (never their values), so you can
+see at a glance whether the credentials arrived and under which naming scheme.
+
+If it says `"store": "memory"` with `"env": { "url": null, "token": null }`, the
+variables aren't reaching the app — confirm the database is connected to *this*
+project and redeploy. The function logs print a warning in that case too.
 
 ### Cost and limits
 
@@ -389,6 +411,7 @@ src/
 | Symptom                                       | Cause / fix                                                                                          |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Friends get "room not found" on Vercel        | Redis isn't attached. Check `/api/health`; if it says `"store":"memory"`, attach Upstash and redeploy |
+| `/api/health` shows `"store":"memory"` after attaching a database | The variables only reach the app at build time — **redeploy** once after connecting it |
 | No alert sound                                | Browsers block audio until a user gesture — one tap anywhere unlocks it. Also check the 🔊 toggle     |
 | iPhone doesn't vibrate                        | iOS doesn't support `navigator.vibrate` at all; the chime covers it. Android vibrates normally        |
 | Asked for a name again after reopening        | `localStorage` was unwritable (Safari private mode), or the room expired                             |

@@ -177,14 +177,49 @@ class MemoryRoomStore implements RoomStore {
 
 let store: RoomStore | null = null
 
+const URL_VARS = ['UPSTASH_REDIS_REST_URL', 'KV_REST_API_URL'] as const
+const TOKEN_VARS = ['UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN'] as const
+
 /**
- * Vercel Marketplace ตั้งชื่อ env ไม่เหมือนกันแล้วแต่ integration ที่กด
- * (Upstash ให้ `UPSTASH_REDIS_REST_*`, Vercel KV ให้ `KV_REST_API_*`) เลยรับทั้งสองแบบ
+ * หาชื่อ env ตัวแรกที่ "มีค่าจริง"
+ *
+ * ต้องเช็คว่าไม่ใช่ค่าว่างด้วย ไม่ใช่แค่ `??` เพราะ Vercel สร้าง env
+ * ที่มีค่าเป็นสตริงว่างได้ ถ้าใช้ `??` ตัวว่างจะบังตัวที่มีค่าจริงที่อยู่ถัดไป
+ * แล้วแอปจะเงียบๆ ตกไปใช้ in-memory store แทน
  */
+function firstSet(names: readonly string[]) {
+    for (const name of names) {
+        const value = process.env[name]?.trim()
+        if (value) return { name, value }
+    }
+    return null
+}
+
+/**
+ * ชื่อ env ต่างกันตาม integration ที่กดบน Vercel
+ * - Upstash marketplace  -> UPSTASH_REDIS_REST_URL / _TOKEN
+ * - Vercel KV            -> KV_REST_API_URL / KV_REST_API_TOKEN
+ *
+ * สองชุดนี้ชี้ไปที่ REST endpoint เดียวกัน เลยรับได้ทั้งคู่
+ *
+ * ส่วน KV_URL / REDIS_URL เป็น connection string แบบ TCP (rediss://) ใช้กับ
+ * @upstash/redis ไม่ได้ และ TCP pool ก็ไม่เหมาะกับ serverless — ไม่ต้องใส่
+ */
+export function inspectRedisEnv() {
+    const url = firstSet(URL_VARS)
+    const token = firstSet(TOKEN_VARS)
+    return {
+        url,
+        token,
+        /** เอาไปโชว์ได้ — เป็นแค่ชื่อ env ไม่ใช่ค่า */
+        urlVar: url?.name ?? null,
+        tokenVar: token?.name ?? null,
+    }
+}
+
 function readRedisEnv() {
-    const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
-    return url && token ? { url, token } : null
+    const { url, token } = inspectRedisEnv()
+    return url && token ? { url: url.value, token: token.value } : null
 }
 
 export function getStore(): RoomStore {
