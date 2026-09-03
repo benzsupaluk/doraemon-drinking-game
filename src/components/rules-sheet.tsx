@@ -13,7 +13,7 @@ export function RulesSheet({ open, onClose }: { open: boolean; onClose: () => vo
             if (event.key === 'Escape') onClose()
         }
         document.addEventListener('keydown', onKey)
-        // ล็อก scroll ข้างหลังไว้ตอนเปิด sheet
+        // Lock scrolling behind the sheet while it is open.
         const previous = document.body.style.overflow
         document.body.style.overflow = 'hidden'
         return () => {

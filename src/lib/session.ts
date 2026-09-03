@@ -3,9 +3,9 @@ const NAME_KEY = 'doraemon:last-name'
 const SOUND_KEY = 'doraemon:sound'
 
 /**
- * localStorage เป็น external store ของ React
- * เลยต้องมี subscribe/emit เพื่อให้อ่านผ่าน `useSyncExternalStore` ได้
- * (อ่านใน useEffect แล้ว setState จะทำให้ render ซ้อนกันโดยไม่จำเป็น)
+ * localStorage is an external store as far as React is concerned, so it needs
+ * subscribe/emit to be readable through `useSyncExternalStore`. Reading it in a
+ * useEffect and calling setState causes needless cascading renders.
  */
 const listeners = new Set<() => void>()
 
@@ -24,7 +24,7 @@ function read(key: string): string | null {
     try {
         return localStorage.getItem(key)
     } catch {
-        // โหมดส่วนตัวของ Safari อ่านไม่ได้ — ถือว่าไม่มีค่าเก็บไว้
+        // Safari private mode cannot read it; treat that as nothing stored.
         return null
     }
 }
@@ -33,7 +33,7 @@ function write(key: string, value: string) {
     try {
         localStorage.setItem(key, value)
     } catch {
-        // เขียนไม่ได้ก็ไม่เป็นไร แค่จำข้ามรอบไม่ได้
+        // If it cannot be written, fine: we just will not remember it next time.
     }
     emit()
 }
@@ -42,12 +42,12 @@ function drop(key: string) {
     try {
         localStorage.removeItem(key)
     } catch {
-        // ไม่เป็นไร
+        // Nothing to do.
     }
     emit()
 }
 
-/* --------------------------- playerId ต่อห้อง --------------------------- */
+/* --------------------------- per-room playerId --------------------------- */
 
 export const savePlayerId = (code: string, playerId: string) =>
     write(KEY_PREFIX + code.toUpperCase(), playerId)
@@ -56,13 +56,13 @@ export const loadPlayerId = (code: string) => read(KEY_PREFIX + code.toUpperCase
 
 export const clearPlayerId = (code: string) => drop(KEY_PREFIX + code.toUpperCase())
 
-/* ------------------------------ ชื่อล่าสุด ------------------------------ */
+/* ------------------------------ last used name ------------------------------ */
 
 export const saveLastName = (name: string) => write(NAME_KEY, name)
 
 export const loadLastName = () => read(NAME_KEY) ?? ''
 
-/* -------------------------------- เสียง -------------------------------- */
+/* -------------------------------- sound -------------------------------- */
 
 export const isSoundEnabled = () => read(SOUND_KEY) !== 'off'
 

@@ -9,10 +9,11 @@ import {
 } from '@/lib/session'
 
 /**
- * อ่านค่าจาก localStorage แบบที่ React รองรับ
+ * Read localStorage the way React supports.
  *
- * snapshot ฝั่ง server ต้องเป็นค่า default คงที่ เพราะตอน SSR ไม่มี localStorage
- * แล้ว React จะสลับมาใช้ค่าจริงให้เองหลัง hydrate โดยไม่ต้อง setState ใน effect
+ * The server snapshot has to be a fixed default, since there is no localStorage
+ * during SSR. React then swaps in the real value after hydration on its own,
+ * with no setState inside an effect.
  */
 export function usePlayerId(code: string) {
     return useSyncExternalStore(

@@ -15,14 +15,15 @@ const VARIANTS: Record<Variant, string> = {
 }
 
 /**
- * NOTE: base ของปุ่มไม่ใส่ความกว้างไว้เลย เพราะ w-full ใน base จะชนกับ w-auto
- * ที่ส่งมาทาง className (Tailwind ตัดสินจากลำดับใน CSS ไม่ใช่ลำดับใน string)
- * ปุ่มที่อยากเต็มความกว้างให้ใส่ `w-full` มาเอง
+ * NOTE: the button base sets no width at all. A `w-full` in the base collides
+ * with a `w-auto` passed through `className`, and Tailwind resolves that by CSS
+ * order rather than by the order of the class string. Buttons that want to fill
+ * their container pass `w-full` themselves.
  */
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: Variant
     loading?: boolean
-    /** ปิดเสียงตอนกด เผื่อปุ่มที่มีเสียงของตัวเองแล้ว */
+    /** Suppress the click sound, for buttons that already play one of their own. */
     silent?: boolean
 }
 

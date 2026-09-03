@@ -18,11 +18,11 @@ function isRed(card: Card) {
 interface Props {
     card: Card | null
     flipped: boolean
-    /** ลำดับไพ่ K ที่เปิด (1-4) ใช้เปลี่ยนข้อความบนไพ่ K */
+    /** Which King this is (1-4); changes the text shown on a King. */
     kingCount?: number
-    /** ข้อความบนหลังไพ่ เช่น "แตะที่ไพ่เพื่อเปิด" */
+    /** Text shown on the card back, e.g. "tap the card to flip it". */
     backHint?: string
-    /** ให้ไอคอนบนหลังไพ่ขยับ ใช้ตอนถึงตาผู้เล่นคนนี้ */
+    /** Animate the icon on the card back; used when it is this player's turn. */
     nudge?: boolean
     className?: string
 }
@@ -121,9 +121,11 @@ function CornerRank({ card, flipped = false }: { card: Card; flipped?: boolean }
 }
 
 /**
- * กองไพ่ที่ยังไม่เปิด — ซ้อนกันให้เห็นความหนา
- * root ไม่ใส่ position เอง เพราะที่เรียกใช้ส่ง `absolute inset-0` มาวางทับไพ่ใบบนอยู่แล้ว
- * (ถ้าใส่ relative ไว้ที่นี่ด้วยจะชนกันแล้วกองไพ่จะไปโผล่เหนือไพ่ใบบนแทน)
+ * The undealt deck, layered so you can see how thick it still is.
+ *
+ * The root sets no position of its own: the caller passes `absolute inset-0` to
+ * sit behind the top card. Adding `relative` here as well would conflict, and
+ * the stack would end up rendering *above* the top card instead.
  */
 export function DeckStack({ count, className = '' }: { count: number; className?: string }) {
     const layers = Math.min(3, Math.max(0, Math.ceil(count / 6)))

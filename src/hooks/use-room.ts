@@ -6,39 +6,57 @@ import type { RoomState } from '@/lib/types'
 
 type Connection = 'connecting' | 'live' | 'lost'
 
-/** ตาเดินของเกมนี้เป็นวินาที ไม่ใช่มิลลิวินาที 1.1 วิเลยเร็วพอแล้ว */
+/** A turn takes seconds, not milliseconds, so ~1s is plenty. */
 const POLL_VISIBLE_MS = 1_100
-/** แท็บที่ถูกซ่อนอยู่ยิงเสียง/สั่นไม่ได้อยู่แล้ว เลยลดความถี่ลงเพื่อประหยัดแบตกับ invocation */
+/** A hidden tab cannot ring or vibrate anyway, so back off to save battery and invocations. */
 const POLL_HIDDEN_MS = 5_000
-/** พลาดกี่ครั้งติดถึงจะบอกผู้ใช้ว่าหลุด — กันไม่ให้ขึ้นเตือนตอนเน็ตกระตุกครั้งเดียว */
+/** Consecutive failures before we tell the player the connection dropped. */
 const FAILURES_BEFORE_LOST = 3
+/**
+ * Consecutive failures before we stop retrying altogether.
+ * With the back-off below this surfaces a real problem in roughly 25s, which is
+ * long enough to ride out a blip and short enough that nobody stares at a
+ * spinner wondering whether the game is broken.
+ */
+const FAILURES_BEFORE_FATAL = 5
+/** Back-off ceiling, so a broken room cannot be polled at full speed forever. */
+const MAX_BACKOFF_MS = 8_000
 
 interface PollResponse {
     state?: RoomState
     unchanged?: boolean
     error?: string
+    detail?: string
 }
 
 /**
- * ดึง state ของห้องด้วยการ poll พร้อม version cursor
+ * Track room state by polling with a version cursor.
  *
- * เลือก poll แทน SSE/WebSocket เพราะเป้าหมายคือ deploy บน Vercel:
- * connection ที่เปิดค้างไว้จะถูกตัดตาม maxDuration ของฟังก์ชัน และคิดเงินตามเวลาที่เปิดค้าง
- * ส่วน poll เป็น request สั้นๆ ที่ทำงานได้ทุกที่ ถ้า version ไม่ขยับ server ก็ตอบ
- * `{ unchanged: true }` กลับมาไม่กี่ไบต์
+ * Polling rather than SSE/WebSocket because this deploys to Vercel: a
+ * long-lived connection is cut at the function's `maxDuration` and billed for
+ * the whole time it stays open, while a poll is a short request that works
+ * anywhere. When the version has not moved the server answers
+ * `{ unchanged: true }`, which is a few dozen bytes.
+ *
+ * Failures back off exponentially and eventually give up. Without that, a room
+ * that can never load (deleted, or a server-side bug) is requested forever, a
+ * few times a second, from every player's phone.
  */
 export function useRoom(code: string) {
     const [state, setState] = useState<RoomState | null>(null)
     const [connection, setConnection] = useState<Connection>('connecting')
     const [error, setError] = useState<string | null>(null)
+    /** Set when we have stopped polling for good; holds the reason to show. */
+    const [fatal, setFatal] = useState<string | null>(null)
 
     const versionRef = useRef(0)
     const failuresRef = useRef(0)
-    /** ให้ effect เรียก poll ตัวล่าสุดได้โดยไม่ต้องใส่ไว้ใน dependency */
+    /** Lets effects trigger the newest poll without depending on it. */
     const pollRef = useRef<() => void>(() => {})
 
     const applyState = useCallback((next: RoomState) => {
-        // response ที่มาช้ากว่าที่เรามีอยู่แล้วต้องทิ้ง ไม่งั้นหน้าจอจะกระพริบย้อนกลับ
+        // Drop responses that are older than what we already have, otherwise
+        // the screen flickers backwards.
         if (next.version < versionRef.current) return
         versionRef.current = next.version
         setState(next)
@@ -47,19 +65,33 @@ export function useRoom(code: string) {
     useEffect(() => {
         if (!code) return
         let disposed = false
+        let stopped = false
         let timer: ReturnType<typeof setTimeout> | null = null
         let inFlight = false
 
-        const schedule = () => {
-            if (disposed) return
+        const giveUp = (reason: string) => {
+            stopped = true
             if (timer) clearTimeout(timer)
-            const delay = document.visibilityState === 'visible' ? POLL_VISIBLE_MS : POLL_HIDDEN_MS
+            setConnection('lost')
+            setFatal(reason)
+        }
+
+        const schedule = () => {
+            if (disposed || stopped) return
+            if (timer) clearTimeout(timer)
+            const base =
+                document.visibilityState === 'visible' ? POLL_VISIBLE_MS : POLL_HIDDEN_MS
+            // Healthy: poll at the normal rate. Failing: back off exponentially.
+            const delay =
+                failuresRef.current === 0
+                    ? base
+                    : Math.min(base * 2 ** failuresRef.current, MAX_BACKOFF_MS)
             timer = setTimeout(poll, delay)
         }
 
         const poll = async () => {
-            // กันการซ้อนกันตอนเน็ตช้า หนึ่งรอบต้องจบก่อนจะยิงรอบใหม่
-            if (disposed || inFlight) return
+            // One request at a time, so a slow network cannot stack them up.
+            if (disposed || stopped || inFlight) return
             inFlight = true
             try {
                 const response = await fetch(`/api/rooms/${code}?since=${versionRef.current}`, {
@@ -69,18 +101,35 @@ export function useRoom(code: string) {
 
                 if (disposed) return
 
-                if (!response.ok) {
-                    // 404 = ห้องหายไปจริง ไม่ใช่เน็ตมีปัญหา บอกทันทีไม่ต้องรอครบ 3 ครั้ง
-                    failuresRef.current = response.status === 404 ? FAILURES_BEFORE_LOST : failuresRef.current + 1
-                } else {
+                if (response.ok) {
                     failuresRef.current = 0
                     if (data.state) applyState(data.state)
+                    setConnection('live')
+                    return
                 }
 
-                setConnection(failuresRef.current >= FAILURES_BEFORE_LOST ? 'lost' : 'live')
+                // The room is genuinely gone. Retrying cannot help, so stop now.
+                if (response.status === 404) {
+                    giveUp(data.error ?? 'ไม่พบห้องนี้ อาจปิดไปแล้วหรือรหัสผิด')
+                    return
+                }
+
+                failuresRef.current += 1
+                if (data.detail) {
+                    console.error(`[room ${code}] server error ${response.status}:`, data.detail)
+                }
+                if (failuresRef.current >= FAILURES_BEFORE_FATAL) {
+                    giveUp(data.error ?? 'เชื่อมต่อกับเซิร์ฟเวอร์ไม่ได้')
+                    return
+                }
+                if (failuresRef.current >= FAILURES_BEFORE_LOST) setConnection('lost')
             } catch {
                 if (disposed) return
                 failuresRef.current += 1
+                if (failuresRef.current >= FAILURES_BEFORE_FATAL) {
+                    giveUp('เชื่อมต่อกับเซิร์ฟเวอร์ไม่ได้')
+                    return
+                }
                 if (failuresRef.current >= FAILURES_BEFORE_LOST) setConnection('lost')
             } finally {
                 inFlight = false
@@ -91,8 +140,10 @@ export function useRoom(code: string) {
         pollRef.current = () => void poll()
         void poll()
 
-        // กลับมาจากหน้าอื่นหรือปลดล็อกจอ — ดึงของใหม่ทันที ไม่ต้องรอรอบถัดไป
-        const onVisible = () => {
+        // Coming back from another app or unlocking the phone: refresh at once
+        // instead of waiting out the current delay.
+        const onWake = () => {
+            if (stopped) return
             if (document.visibilityState !== 'visible') {
                 schedule()
                 return
@@ -100,13 +151,13 @@ export function useRoom(code: string) {
             if (timer) clearTimeout(timer)
             void poll()
         }
-        document.addEventListener('visibilitychange', onVisible)
-        window.addEventListener('online', onVisible)
+        document.addEventListener('visibilitychange', onWake)
+        window.addEventListener('online', onWake)
 
         return () => {
             disposed = true
-            document.removeEventListener('visibilitychange', onVisible)
-            window.removeEventListener('online', onVisible)
+            document.removeEventListener('visibilitychange', onWake)
+            window.removeEventListener('online', onWake)
             if (timer) clearTimeout(timer)
         }
     }, [code, applyState])
@@ -114,14 +165,15 @@ export function useRoom(code: string) {
     const act = useCallback(
         async (playerId: string, action: GameAction) => {
             try {
-                // action ตอบ state ใหม่กลับมาเลย คนที่กดจึงเห็นผลทันทีไม่ต้องรอรอบ poll
+                // The action response carries the new state, so whoever tapped
+                // sees the result immediately rather than on the next poll.
                 const { state: next } = await sendAction(code, playerId, action)
                 applyState(next)
                 setError(null)
                 return true
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'ทำรายการไม่สำเร็จ')
-                // ดึง state จริงมาดูเลย เผื่อที่พลาดเพราะหน้าจอเราตามไม่ทันคนอื่น
+                // Refresh, in case the action failed because our view was stale.
                 pollRef.current()
                 return false
             }
@@ -129,5 +181,5 @@ export function useRoom(code: string) {
         [code, applyState]
     )
 
-    return { state, connection, error, setError, act }
+    return { state, connection, error, setError, act, fatal }
 }

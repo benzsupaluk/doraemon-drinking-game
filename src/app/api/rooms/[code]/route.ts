@@ -11,8 +11,9 @@ const noStore = { headers: { 'Cache-Control': 'no-store' } }
 /**
  * GET /api/rooms/:code?since=<version>
  *
- * client poll เข้ามาที่นี่เรื่อยๆ ถ้า version ยังไม่ขยับก็ตอบ `{ unchanged: true }`
- * ซึ่งเป็น payload ไม่กี่ไบต์ แทนที่จะส่ง state ทั้งก้อนทุกวินาที
+ * Clients poll this endpoint. When the version has not moved we answer
+ * `{ unchanged: true }`, a payload of a few dozen bytes, instead of shipping
+ * the whole state every second.
  */
 export async function GET(request: Request, { params }: Params) {
     try {
@@ -31,7 +32,7 @@ export async function GET(request: Request, { params }: Params) {
     }
 }
 
-/** POST /api/rooms/:code — เข้าร่วมวงด้วยชื่อของตัวเอง */
+/** POST /api/rooms/:code - join a room under your own name. */
 export async function POST(request: Request, { params }: Params) {
     try {
         const { code } = await params

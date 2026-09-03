@@ -1,4 +1,4 @@
-/** กระดิ่งประจำเกม — วาดเองด้วย SVG ไม่ได้ใช้ตัวละครลิขสิทธิ์ */
+/** The game's bell, drawn as original SVG. No copyrighted character is used. */
 export function BellMark({ className = 'size-10', animated = false }: { className?: string; animated?: boolean }) {
     return (
         <svg
@@ -23,7 +23,7 @@ export function BellMark({ className = 'size-10', animated = false }: { classNam
     )
 }
 
-/** ลายหนวด 3 เส้น ใช้ประดับหัวข้อ */
+/** Three-line whisker motif, used to decorate headings. */
 export function WhiskerLine({ className = '' }: { className?: string }) {
     return (
         <svg viewBox="0 0 120 24" className={className} aria-hidden>

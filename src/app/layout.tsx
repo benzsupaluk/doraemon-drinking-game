@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="th" className={`${thai.variable} ${mali.variable}`}>
             <body className="relative overflow-x-hidden">
-                {/* พื้นหลังเรืองแสงแบบกลางคืน */}
+                {/* Night-time background glow. */}
                 <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
                     <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_-10%,#0f4e86_0%,#061c33_58%,#02101d_100%)]" />
                     <div className="animate-float absolute -top-24 -left-16 size-72 rounded-full bg-dora-blue/25 blur-3xl" />

@@ -9,6 +9,6 @@ export interface ViewProps {
     setError: (value: string | null) => void
     act: (playerId: string, action: GameAction) => Promise<boolean>
     isMyTurn: boolean
-    /** origin ที่ได้จาก request header ใช้ประกอบลิงก์เชิญ */
+    /** Origin taken from request headers, used to build the invite link. */
     origin: string
 }

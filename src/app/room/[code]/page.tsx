@@ -13,9 +13,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * หา origin จาก request header ฝั่ง server
- * ทำให้ลิงก์เชิญถูกต้องตั้งแต่ HTML ชุดแรก (กดคัดลอกได้เลยไม่ต้องรอ JS)
- * และไม่ต้องแตะ `window` ในฝั่ง client
+ * Resolve the origin from request headers on the server.
+ *
+ * That makes the invite link correct in the very first HTML, so it can be
+ * copied before JS loads, and means no `window` access on the client.
  */
 async function resolveOrigin() {
     const headerList = await headers()

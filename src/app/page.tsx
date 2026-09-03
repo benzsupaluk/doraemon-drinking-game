@@ -15,8 +15,8 @@ const MAX_PLAYERS = 12
 
 export default function HomePage() {
     const router = useRouter()
-    // ชื่อที่จำไว้มาจาก localStorage ส่วน typed คือที่ผู้ใช้พิมพ์ทับ
-    // แยกกันแบบนี้เพื่อ prefill ได้โดยไม่ต้อง setState ใน effect
+    // `remembered` comes from localStorage, `typed` is what the user has
+    // overridden. Keeping them apart lets us prefill without a setState in an effect.
     const remembered = useRememberedName()
     const [typed, setTyped] = useState<string | null>(null)
     const name = typed ?? remembered

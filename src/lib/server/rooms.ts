@@ -1,5 +1,5 @@
+import { RoomError } from './errors'
 import * as game from './game'
-import { RoomError } from './game'
 import { getStore } from './store'
 import type { RoomState } from '../types'
 
@@ -7,7 +7,7 @@ export { RoomError }
 
 const CODE_ATTEMPTS = 12
 
-/** อ่านห้อง — โยน 404 ถ้าไม่มี เพื่อให้ทุก route จัดการเหมือนกันหมด */
+/** Load a room, throwing a 404 if it is missing, so every route behaves alike. */
 async function load(code: string) {
     const record = await getStore().get(code.toUpperCase())
     if (!record) throw new RoomError('ไม่พบห้องนี้ อาจปิดไปแล้วหรือรหัสผิด', 404)
@@ -21,13 +21,13 @@ export async function getRoomState(code: string): Promise<RoomState> {
 export async function createRoom(hostName: string, maxPlayers: unknown) {
     const store = getStore()
     const max = game.clampPlayers(maxPlayers)
-    // validate ชื่อก่อนจองรหัส ไม่งั้นชื่อว่างจะกินรหัสไปเปล่าๆ
+    // Validate the name before reserving a code, or a blank name burns one for nothing.
     game.sanitizeName(hostName)
 
     for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt++) {
         const code = game.randomCode()
         const { record, playerId } = game.newRoomRecord(code, hostName, max)
-        // claim ใช้ SET NX จึงกันรหัสชนกันได้จริงแม้จะมีหลาย instance
+        // `claim` uses SET NX, so codes cannot collide even across instances.
         if (await store.claim(code, record)) {
             return { state: record.state, playerId }
         }
@@ -55,8 +55,9 @@ export type GameActionInput =
     | { type: 'leave' }
 
 /**
- * ทุก action คือ read-modify-write เลยต้องอยู่ใน lock ของห้องนั้น
- * ถ้าไม่ล็อก สองคนกดพร้อมกันแล้วคนหลังจะเขียนทับผลของคนแรก
+ * Applying an action is a read-modify-write, so it has to hold that room's
+ * lock. Without one, two simultaneous actions mean the second overwrites the
+ * first.
  */
 export async function applyAction(
     code: string,

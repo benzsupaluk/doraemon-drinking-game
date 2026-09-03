@@ -16,13 +16,15 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
     const revealed = state.phase === 'revealed'
 
     /**
-     * ไพ่บนหน้าการ์ดหาได้จาก state ของ server ทั้งหมด ไม่ต้องเก็บ state ในนี้เลย
+     * The card face is derived entirely from server state; no local state needed.
      *
-     * ตอนจบตา server เคลียร์ `currentCard` แต่ `log[0]` ยังเป็นไพ่ใบล่าสุดอยู่
-     * เลยใช้เป็นหน้าไพ่ระหว่างที่การ์ดกำลังพลิกกลับ ไม่งั้นไพ่จะหายไปทั้งใบทันที
+     * When a turn ends the server clears `currentCard`, but `log[0]` still holds
+     * the last card drawn, so we show that while the card flips back. Otherwise
+     * the whole card would vanish instantly.
      *
-     * ส่วน animation เกิดจากการที่ class `is-flipped` เพิ่ม/หายไปบน element ที่ mount อยู่แล้ว
-     * CSS transition จัดการให้เอง ไม่ต้องมี timer หรือ ref มาคุมจังหวะ
+     * The animation comes from `is-flipped` being added to or removed from an
+     * element that is already mounted; the CSS transition does the rest, with no
+     * timers or refs needed to sequence it.
      */
     const faceCard = state.currentCard ?? state.log[0]?.card ?? null
     const flipped = revealed && !!state.currentCard
@@ -229,7 +231,7 @@ function BuddyPicker({
     )
 }
 
-/** ไพ่ 9/10 ชี้ไปที่คนซ้าย/ขวาของคนเปิด — คำนวณจากลำดับที่นั่งในวง */
+/** Cards 9 and 10 target the player to the drawer's left/right, by seating order. */
 function targetHint(rank: string, players: ViewProps['state']['players'], turnIndex: number) {
     const rule = CARD_RULES[rank as keyof typeof CARD_RULES]
     if (rank === '9') {

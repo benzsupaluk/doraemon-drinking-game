@@ -2,16 +2,16 @@ import type { Rank } from './types'
 
 export interface CardRule {
     rank: Rank
-    /** ชื่อกฎแบบสั้น ใช้พาดหัวการ์ด */
+    /** Short rule name, used as the card's headline. */
     title: string
-    /** อธิบายกฎแบบเต็ม */
+    /** The full rule text. */
     detail: string
     emoji: string
-    /** จำนวนอึกที่คนเปิดต้องดื่มทันที (0 = ไม่ต้องดื่มเอง) */
+    /** Gulps the drawer owes immediately (0 = they do not drink themselves). */
     sips: number
-    /** ต้องมี interaction เพิ่มหลังเปิดไพ่ */
+    /** Requires a follow-up interaction after the flip. */
     action?: 'buddy' | 'hold' | 'king'
-    /** สีธีมของการ์ด */
+    /** The card's colour theme. */
     tone: 'drink' | 'game' | 'target' | 'special'
 }
 
@@ -125,7 +125,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
     },
 }
 
-/** ข้อความของไพ่ K ตามลำดับใบที่เปิด (1-4) */
+/** King text, by which King it is (1-4). */
 export const KING_STEPS = [
     { title: 'ใบที่ 1 — กำหนด "ทำอะไร"', detail: 'คนเปิดตั้งท่าหรือกิจกรรมที่ต้องทำ' },
     { title: 'ใบที่ 2 — กำหนด "ทำที่ไหน"', detail: 'คนเปิดกำหนดสถานที่หรือตำแหน่ง' },
@@ -133,7 +133,7 @@ export const KING_STEPS = [
     { title: 'ใบที่ 4 — โดนเอง! 💀', detail: 'คนเปิดใบนี้ต้องทำทุกอย่างที่ 3 ใบก่อนหน้ากำหนดไว้' },
 ] as const
 
-/** กฎที่ใช้ตลอดทั้งเกม */
+/** Rules that apply for the whole game. */
 export const GLOBAL_RULES = [
     {
         emoji: '🙅',

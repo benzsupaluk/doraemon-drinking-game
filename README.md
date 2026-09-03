@@ -411,11 +411,15 @@ src/
 | Symptom                                       | Cause / fix                                                                                          |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Friends get "room not found" on Vercel        | Redis isn't attached. Check `/api/health`; if it says `"store":"memory"`, attach Upstash and redeploy |
-| `/api/health` shows `"store":"memory"` after attaching a database | The variables only reach the app at build time — **redeploy** once after connecting it |
+| **Every** `/api/*` route returns 500          | Check `/api/health` first — it never fails. `initError` names the cause                               |
+| `/api/health` shows `"store":"memory"` after attaching a database | A deployment keeps the environment it was created with — **redeploy** once after connecting it |
+| `initError` mentions `UrlError`               | The stored URL isn't a bare `https://…` value — most often it was pasted with surrounding quotes      |
 | No alert sound                                | Browsers block audio until a user gesture — one tap anywhere unlocks it. Also check the 🔊 toggle     |
 | iPhone doesn't vibrate                        | iOS doesn't support `navigator.vibrate` at all; the chime covers it. Android vibrates normally        |
 | Asked for a name again after reopening        | `localStorage` was unwritable (Safari private mode), or the room expired                             |
 | Red dot / "หลุดการเชื่อมต่อ"                  | Three polls failed in a row. It reconnects on its own, and refocusing the tab refreshes immediately   |
+| "เข้าวง … ไม่ได้" with a retry button         | Polling gave up after ~25s. The message shown is the server's own; check the function logs for detail |
+| A 500 from `/api/rooms/:code`                 | The response includes a `detail` field with the underlying error, and the server logs the room code   |
 | Want to change a card rule                    | Edit [`src/lib/rules.ts`](src/lib/rules.ts) only; every screen follows it                            |
 
 ---

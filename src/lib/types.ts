@@ -13,19 +13,19 @@ export interface Player {
     name: string
     isHost: boolean
     joinedAt: number
-    /** ไพ่ 8 ที่เก็บติดตัวไว้ */
+    /** Held 8s, kept in hand. */
     heldCards: Card[]
-    /** id ของบัดดี้ที่จับคู่กันไว้ (ไพ่ 5) */
+    /** Id of the paired buddy (from card 5). */
     buddyId: string | null
-    /** โดนไพ่ Q อยู่ — ห้ามพูดกับคนนี้ */
+    /** Currently under the Q: nobody may speak to them. */
     silenced: boolean
-    /** จำนวนไพ่ที่เปิดไปแล้ว (สถิติสนุกๆ) */
+    /** How many cards they have flipped, just for the end-of-round summary. */
     cardsDrawn: number
 }
 
 export type RoomStatus = 'lobby' | 'playing' | 'finished'
 
-/** idle = รอคนปัจจุบันเปิดไพ่, revealed = ไพ่เปิดแล้วรออ่านกฎ */
+/** idle = waiting for the current player to flip; revealed = flipped, reading the rule. */
 export type TurnPhase = 'idle' | 'revealed'
 
 export interface LogEntry {
@@ -36,20 +36,20 @@ export interface LogEntry {
     at: number
 }
 
-/** state ที่ส่งให้ client ทุกคน (ไม่มีสำรับจริงอยู่ในนี้) */
+/** The state sent to every client. The real deck is deliberately not in here. */
 export interface RoomState {
     code: string
     maxPlayers: number
     status: RoomStatus
     phase: TurnPhase
     players: Player[]
-    /** index ใน players ของคนที่ถึงตา */
+    /** Index into `players` of whoever's turn it is. */
     turnIndex: number
     deckCount: number
     currentCard: Card | null
-    /** ไพ่ K ที่เปิดไปแล้ว 0-4 */
+    /** Kings drawn so far, 0-4. */
     kingCount: number
-    /** true = ไพ่ 5 เพิ่งเปิด และเจ้าของตายังไม่เลือกบัดดี้ */
+    /** True when a 5 was just drawn and the current player has not picked a buddy yet. */
     awaitingBuddy: boolean
     log: LogEntry[]
     version: number

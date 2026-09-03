@@ -1,27 +1,44 @@
 import { NextResponse } from 'next/server'
-import { storeKind } from '@/lib/server/rooms'
-import { inspectRedisEnv } from '@/lib/server/store'
+import { storeStatus } from '@/lib/server/store'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/health
  *
- * ใช้เช็คหลัง deploy ว่าต่อ Redis ติดจริงไหม
- * ถ้าตอบ `"store":"memory"` บน Vercel แปลว่ายังไม่ได้ตั้ง env — เพื่อนจะหาห้องไม่เจอ
+ * Use this after deploying to confirm Redis is really connected.
  *
- * `env` บอกแค่ "ชื่อ" ของ environment variable ที่หาเจอ ไม่ได้ส่งค่าออกไป
+ * This endpoint must never fail, because it is the one thing you have to work
+ * with when everything else is returning 500. So it catches everything and
+ * always answers 200, reporting what it found:
+ *
+ * - `store`        "redis" (good) or "memory"
+ * - `misconfigured` true when running on Vercel without Redis, which cannot
+ *                   support multiplayer: players will not find each other
+ * - `env`          which variable NAMES were found, never their values
+ * - `initError`    why building the Redis client failed, if it did
  */
 export async function GET() {
-    const { urlVar, tokenVar } = inspectRedisEnv()
-
-    return NextResponse.json(
-        {
-            ok: true,
-            store: storeKind(),
-            onVercel: !!process.env.VERCEL,
-            env: { url: urlVar, token: tokenVar },
-        },
-        { headers: { 'Cache-Control': 'no-store' } }
-    )
+    try {
+        const status = storeStatus()
+        return NextResponse.json(
+            {
+                ok: !status.misconfigured && !status.initError,
+                onVercel: !!process.env.VERCEL,
+                ...status,
+                hint: status.misconfigured
+                    ? 'Connect Upstash for Redis in Vercel > Storage, then redeploy. See the README.'
+                    : undefined,
+            },
+            { headers: { 'Cache-Control': 'no-store' } }
+        )
+    } catch (error) {
+        return NextResponse.json(
+            {
+                ok: false,
+                error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+            },
+            { status: 200, headers: { 'Cache-Control': 'no-store' } }
+        )
+    }
 }

@@ -11,7 +11,7 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
     const [copied, setCopied] = useState(false)
     const [starting, setStarting] = useState(false)
 
-    // origin มาจาก request header ฝั่ง server ลิงก์จึงถูกต้องตั้งแต่ HTML ชุดแรก
+    // `origin` comes from request headers server-side, so the link is correct in the first HTML.
     const inviteUrl = `${origin}/room/${state.code}`
 
     const full = state.players.length >= state.maxPlayers
@@ -24,13 +24,13 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
             text: `มาเล่นเกมส์โดรามอนกัน! รหัสวง ${state.code}`,
             url: inviteUrl,
         }
-        // มือถือส่วนใหญ่จะได้ share sheet ของเครื่อง ถ้าไม่มีก็ copy ให้เลย
+        // Most phones get the native share sheet; without it, fall back to copying.
         if (typeof navigator.share === 'function') {
             try {
                 await navigator.share(shareData)
                 return
             } catch {
-                // ผู้ใช้กดยกเลิก share sheet — ตกไปใช้ copy ต่อ
+                // The user dismissed the share sheet: fall through to copying.
             }
         }
         await handleCopy()

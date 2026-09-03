@@ -1,9 +1,11 @@
 'use client'
 
 /**
- * เสียงและการสั่นเวลาถึงตาเรา
- * เสียงสร้างจาก Web Audio API ตรงๆ จะได้ไม่ต้องโหลดไฟล์เสียงเลย
- * iOS ไม่รองรับ navigator.vibrate เลยต้องมีเสียงเป็นตัวหลัก
+ * Sound and vibration for turn alerts.
+ *
+ * Tones are synthesised with the Web Audio API so there are no audio files to
+ * load. iOS does not support navigator.vibrate at all, which is why sound has
+ * to be the primary channel.
  */
 
 import { isSoundEnabled } from './session'
@@ -19,7 +21,7 @@ function getContext(): AudioContext | null {
     return ctx
 }
 
-/** ต้องเรียกจากใน event ของ user ครั้งแรก ไม่งั้น browser จะบล็อกเสียง */
+/** Must be called from a real user event the first time, or the browser blocks audio. */
 export function unlockAudio() {
     const audio = getContext()
     if (audio && audio.state === 'suspended') void audio.resume()
@@ -59,11 +61,11 @@ export function vibrate(pattern: number | number[]) {
     try {
         navigator.vibrate(pattern)
     } catch {
-        // บางเบราว์เซอร์บล็อกไว้ — ข้ามไป
+        // Some browsers block this outright; skip it.
     }
 }
 
-/** ถึงตาเรา: เสียงกระดิ่ง 3 โน้ต + สั่นยาว */
+/** Our turn: a three-note bell plus a long vibration. */
 export function notifyMyTurn() {
     vibrate([0, 180, 90, 180, 90, 320])
     if (!isSoundEnabled()) return
@@ -73,7 +75,7 @@ export function notifyMyTurn() {
     tone({ freq: 783.99, duration: 0.5, delay: 0.32, type: 'sine', gain: 0.1 })
 }
 
-/** เสียงเปิดไพ่ */
+/** Card flip. */
 export function playFlip() {
     vibrate(35)
     if (!isSoundEnabled()) return
@@ -81,21 +83,21 @@ export function playFlip() {
     tone({ freq: 720, duration: 0.14, delay: 0.07, type: 'triangle', gain: 0.09 })
 }
 
-/** เสียงต้องดื่ม (ไพ่ A-4) */
+/** Drink up (cards A-4). */
 export function playDrink() {
     if (!isSoundEnabled()) return
     tone({ freq: 300, duration: 0.18, type: 'sawtooth', gain: 0.07 })
     tone({ freq: 200, duration: 0.32, delay: 0.14, type: 'sawtooth', gain: 0.07 })
 }
 
-/** เสียงมีคนเข้าวง */
+/** Someone joined the room. */
 export function playJoin() {
     if (!isSoundEnabled()) return
     tone({ freq: 659.25, duration: 0.12, type: 'sine', gain: 0.12 })
     tone({ freq: 987.77, duration: 0.2, delay: 0.1, type: 'sine', gain: 0.12 })
 }
 
-/** เสียงเริ่มเกม */
+/** Game start. */
 export function playStart() {
     vibrate([0, 60, 60, 60])
     if (!isSoundEnabled()) return

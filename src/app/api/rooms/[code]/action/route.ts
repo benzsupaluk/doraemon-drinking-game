@@ -18,7 +18,7 @@ function parseAction(body: Record<string, unknown>): GameActionInput {
     return { type } as GameActionInput
 }
 
-/** POST /api/rooms/:code/action — ทุก action ในเกมรวมอยู่ที่นี่ */
+/** POST /api/rooms/:code/action - every in-game action goes through here. */
 export async function POST(request: Request, { params }: Params) {
     try {
         const { code } = await params

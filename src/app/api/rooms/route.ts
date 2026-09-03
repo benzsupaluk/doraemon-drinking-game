@@ -4,7 +4,7 @@ import { createRoom } from '@/lib/server/rooms'
 
 export const dynamic = 'force-dynamic'
 
-/** POST /api/rooms — หัวตี้สร้างวงใหม่ */
+/** POST /api/rooms - the host creates a new room. */
 export async function POST(request: Request) {
     try {
         const body = await readJson(request)

@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-    /* จอมือถือเล็ก (iPhone SE) กับจอปกติต่างกันพอที่จะต้องลดขนาดหัวข้อ */
+    /* Small phones (iPhone SE) differ enough from normal ones to need a smaller heading. */
     --breakpoint-xs: 25rem;
 
     --color-dora-blue: #29abe2;
@@ -112,7 +112,7 @@
     }
 
     html {
-        /* กัน bounce ตอน scroll บน iOS ให้เหมือนแอป */
+        /* Stop iOS rubber-band scrolling so it feels like an app. */
         overscroll-behavior-y: none;
     }
 
@@ -120,7 +120,7 @@
         font-family: var(--font-body);
         color: var(--color-dora-cream);
         background-color: var(--color-dora-night);
-        /* กันปุ่มล่างสุดโดน home bar ของ iPhone ทับ */
+        /* Keep the bottom buttons clear of the iPhone home bar. */
         min-height: 100dvh;
         -webkit-font-smoothing: antialiased;
     }
@@ -131,7 +131,7 @@
 }
 
 @utility app-shell {
-    /* ทุกหน้าคุมความกว้างระดับมือถือ แล้วจัดกลางบนจอใหญ่ */
+    /* Every screen keeps a phone-sized width and centres on larger displays. */
     width: 100%;
     max-width: 32rem;
     margin-inline: auto;
@@ -151,7 +151,7 @@
     }
 }
 
-/* ---------- ไพ่ 3D ---------- */
+/* ---------- 3D card ---------- */
 
 @utility card-stage {
     perspective: 1400px;
@@ -180,7 +180,7 @@
     transform: rotateY(180deg);
 }
 
-/* ลายหลังไพ่ธีมกระดิ่งโดเรมอน */
+/* Card back pattern, bell theme. */
 @utility card-back-art {
     background:
         radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.35), transparent 42%),

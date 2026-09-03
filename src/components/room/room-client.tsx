@@ -13,12 +13,12 @@ import { usePlayerId } from '@/hooks/use-session'
 import { clearPlayerId, savePlayerId } from '@/lib/session'
 
 export function RoomClient({ code, origin }: { code: string; origin: string }) {
-    const { state, connection, error, setError, act } = useRoom(code)
-    // อ่านตรงจาก localStorage ผ่าน external store — ไม่ต้อง setState ใน effect
+    const { state, connection, error, setError, act, fatal } = useRoom(code)
+    // Read straight from localStorage via an external store, so no setState in an effect.
     const playerId = usePlayerId(code)
 
-    // เบราว์เซอร์บล็อกเสียงจนกว่าจะมี gesture ของผู้ใช้
-    // คนที่กลับเข้าห้องเดิมจาก localStorage อาจยังไม่เคยกดปุ่มอะไรเลย เลยดักการแตะครั้งแรกไว้
+    // Browsers block audio until the user gestures. Someone rejoining a room
+    // from localStorage may not have pressed anything yet, so catch the first tap.
     useEffect(() => {
         const unlock = () => unlockAudio()
         window.addEventListener('pointerdown', unlock, { once: true })
@@ -30,8 +30,9 @@ export function RoomClient({ code, origin }: { code: string; origin: string }) {
         [state, playerId]
     )
 
-    // playerId ที่เก็บไว้ใช้ไม่ได้แล้ว (ห้องหายไป / เราถูกเตะออก) → ล้างทิ้งให้ใส่ชื่อใหม่
-    // ลบออกจาก store แล้ว usePlayerId จะอ่านได้ null เอง
+    // The stored playerId is no longer usable (room gone, or we were removed):
+    // clear it so the name screen comes back. Dropping it from the store makes
+    // usePlayerId read null on its own.
     useEffect(() => {
         if (!state || !playerId || me) return
         clearPlayerId(code)
@@ -45,11 +46,18 @@ export function RoomClient({ code, origin }: { code: string; origin: string }) {
 
     const handleJoined = (id: string) => savePlayerId(code, id)
 
+    // Polling has given up: show why and stop, instead of spinning forever.
+    if (fatal && !state) return <ErrorScreen code={code} reason={fatal} />
+
     if (!state) {
-        return connection === 'lost' ? (
-            <ErrorScreen code={code} />
-        ) : (
-            <LoadingScreen label={`กำลังเข้าวง ${code}...`} />
+        return (
+            <LoadingScreen
+                label={
+                    connection === 'lost'
+                        ? `เชื่อมต่อไม่ได้ กำลังลองใหม่...`
+                        : `กำลังเข้าวง ${code}...`
+                }
+            />
         )
     }
 
@@ -64,12 +72,12 @@ export function RoomClient({ code, origin }: { code: string; origin: string }) {
     return <GameView {...shared} />
 }
 
-/** สั่น + เสียงกระดิ่งทุกครั้งที่เปลี่ยนมาเป็นตาเรา และย้ำอีกครั้งถ้ายังไม่กด */
+/** Vibrate and chime whenever it becomes our turn, repeating until we act. */
 function useTurnAlert({ active }: { active: boolean }) {
     useEffect(() => {
         if (!active) return
         notifyMyTurn()
-        // ถ้าวางมือถือไว้แล้วไม่กด เตือนซ้ำทุก 12 วิ
+        // If the phone is face down and nobody acts, remind them every 12s.
         const timer = setInterval(notifyMyTurn, 12_000)
         return () => clearInterval(timer)
     }, [active])
@@ -106,23 +114,31 @@ function LoadingScreen({ label }: { label: string }) {
     )
 }
 
-function ErrorScreen({ code }: { code: string }) {
+function ErrorScreen({ code, reason }: { code: string; reason: string }) {
     return (
         <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 text-center">
             <span className="text-6xl">🫠</span>
             <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                 เข้าวง {code} ไม่ได้
             </h1>
-            <p className="text-sm text-dora-cream/70">
-                วงนี้อาจปิดไปแล้ว หรือรหัสไม่ถูกต้อง ลองขอลิงก์จากหัวตี้อีกครั้ง
-            </p>
-            <Link
-                href="/"
-                className="glass rounded-2xl px-6 py-3 font-bold text-dora-cream"
-                style={{ fontFamily: 'var(--font-display)' }}
-            >
-                กลับหน้าแรก
-            </Link>
+            <p className="text-sm text-dora-cream/80">{reason}</p>
+            <p className="text-xs text-dora-cream/50">ลองขอลิงก์ใหม่จากหัวตี้ หรือสร้างวงเองก็ได้</p>
+            <div className="flex w-full max-w-xs flex-col gap-2 pt-2">
+                <button
+                    onClick={() => window.location.reload()}
+                    className="glass rounded-2xl px-6 py-3 font-bold text-dora-cream"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                >
+                    ลองใหม่อีกครั้ง
+                </button>
+                <Link
+                    href="/"
+                    className="rounded-2xl px-6 py-3 text-sm font-semibold text-dora-sky"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                >
+                    กลับหน้าแรก
+                </Link>
+            </div>
         </main>
     )
 }

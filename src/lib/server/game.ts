@@ -1,3 +1,4 @@
+import { RoomError } from './errors'
 import type { RoomRecord } from './store'
 import { CARD_RULES } from '../rules'
 import type { Card, LogEntry, Player, Rank, RoomState, Suit } from '../types'
@@ -10,17 +11,10 @@ const LOG_LIMIT = 30
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 12
 
-export class RoomError extends Error {
-    status: number
-    constructor(message: string, status = 400) {
-        super(message)
-        this.status = status
-    }
-}
-
 /**
- * กฎของเกมทั้งหมดอยู่ในไฟล์นี้ และทุกฟังก์ชันเป็น pure (แก้ record ที่ส่งเข้ามาอย่างเดียว)
- * ไม่มี I/O เลย ทำให้ย้าย store จาก memory ไป Redis ได้โดยไม่ต้องแตะ logic
+ * Every game rule lives in this file, and every function here is pure: it only
+ * mutates the record it was handed. No I/O at all, which is what lets the store
+ * move between memory and Redis without touching any game logic.
  */
 
 export function randomId(len = 10) {
@@ -30,7 +24,7 @@ export function randomId(len = 10) {
     return out
 }
 
-/** ตัดตัวอักษรที่อ่านสับสน (I O 0 1) ออก เพราะต้องอ่านรหัสให้เพื่อนพิมพ์ตาม */
+/** Excludes easily confused characters (I O 0 1): codes get read out loud. */
 export function randomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     let code = ''
@@ -165,7 +159,7 @@ export function start(record: RoomRecord, playerId: string) {
     state.awaitingBuddy = false
     state.log = []
     resetPlayers(record)
-    // สุ่มคนเริ่ม
+    // Pick the starting player at random.
     state.turnIndex = Math.floor(Math.random() * state.players.length)
     bump(record)
 }
@@ -192,7 +186,7 @@ export function draw(record: RoomRecord, playerId: string) {
     if (rule.action === 'hold') player.heldCards.push(card)
     if (rule.action === 'buddy') state.awaitingBuddy = true
     if (rule.action === 'king') state.kingCount = Math.min(state.kingCount + 1, 4)
-    // Q ใบใหม่ย้ายสถานะ "ห้ามพูดด้วย" มาที่คนเปิดล่าสุด
+    // A new Q moves the "do not speak to them" status onto whoever just drew it.
     if (card.rank === 'Q') {
         for (const p of state.players) p.silenced = p.id === player.id
     }
@@ -215,7 +209,8 @@ export function pickBuddy(record: RoomRecord, playerId: string, buddyId: string)
     if (buddyId === playerId) throw new RoomError('เลือกตัวเองไม่ได้นะ')
     const buddy = requirePlayer(record, buddyId)
 
-    // ตัดคู่เก่าของทั้งสองฝ่ายออกก่อน ไม่ให้เหลือคู่ที่ชี้ไปหาคนที่มีคู่ใหม่แล้ว
+    // Clear both players' previous pairings first, so no stale pair is left
+    // pointing at someone who now has a different buddy.
     for (const p of state.players) {
         if (p.buddyId === player.id || p.buddyId === buddy.id) p.buddyId = null
     }
@@ -252,7 +247,7 @@ export function endTurn(record: RoomRecord, playerId: string) {
     bump(record)
 }
 
-/** คืน true ถ้าไม่มีใครเหลือในวงแล้ว (ให้ caller ลบห้องทิ้ง) */
+/** Returns true when nobody is left, so the caller can delete the room. */
 export function leave(record: RoomRecord, playerId: string): boolean {
     const { state } = record
     const index = state.players.findIndex((p) => p.id === playerId)
@@ -268,13 +263,15 @@ export function leave(record: RoomRecord, playerId: string): boolean {
 
     if (state.players.length === 0) return true
 
-    // ยกตำแหน่งหัวตี้ให้คนที่เข้ามาก่อนสุด ไม่งั้นวงจะเริ่มรอบใหม่ไม่ได้เลย
+    // Hand the host role to whoever joined earliest, otherwise the group could
+    // never start another round.
     if (leaving.isHost) state.players[0].isHost = true
 
     if (index < state.turnIndex) state.turnIndex -= 1
     if (state.turnIndex >= state.players.length) state.turnIndex = 0
 
-    // คนที่ออกคือคนที่ถึงตา — เคลียร์ไพ่ที่ค้างอยู่ ไม่งั้นวงจะติดอยู่ที่ไพ่ใบนั้นตลอด
+    // The player who left was the one on turn: clear the pending card, or the
+    // group would be stuck on it forever.
     if (wasTheirTurn) {
         state.currentCard = null
         state.phase = 'idle'

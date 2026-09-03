@@ -1,13 +1,14 @@
 import { Redis } from '@upstash/redis'
+import { RoomError } from './errors'
 import type { Card, RoomState } from '../types'
 
-/** ทุกอย่างของหนึ่งวง — สำรับไพ่เก็บไว้ฝั่ง server เท่านั้น ไม่เคยส่งออกไป client */
+/** Everything about one room. `deck` is server-only and never sent to clients. */
 export interface RoomRecord {
     state: RoomState
     deck: Card[]
 }
 
-/** ห้องที่ไม่มีใครแตะเกิน 6 ชั่วโมงจะหายไปเอง */
+/** Rooms nobody touches for 6 hours disappear on their own. */
 const ROOM_TTL_SECONDS = 6 * 60 * 60
 
 const LOCK_TTL_MS = 4_000
@@ -15,20 +16,21 @@ const LOCK_RETRY_MS = 50
 const LOCK_MAX_WAIT_MS = 3_000
 
 /**
- * ที่เก็บสถานะวง
+ * Where room state lives.
  *
- * มี 2 แบบ เลือกจาก environment variable ตอน runtime:
- * - `redis`  ใช้ Upstash Redis ผ่าน REST — จำเป็นบน Vercel เพราะแต่ละ request
- *            อาจตกไปคนละ instance ที่ไม่แชร์ memory กัน
- * - `memory` เก็บใน process — ใช้ตอน `pnpm dev` และตอนรัน container เดียว
- *            ไม่ต้องตั้งค่าอะไรเลย
+ * Two implementations, chosen from the environment at runtime:
+ * - `redis`  Upstash Redis over REST. Required on Vercel, where consecutive
+ *            requests can land on different instances that share no memory.
+ * - `memory` In-process. Used by `pnpm dev` and single-container deployments,
+ *            and needs no configuration at all.
  *
- * ทั้งสองแบบมี `withLock` เพราะการเล่นหนึ่ง action คือ read-modify-write
- * ถ้าสองคนกดพร้อมกันโดยไม่มี lock จะมี update หายไป (เช่นเข้าวงพร้อมกันแล้วเห็นแค่คนเดียว)
+ * Both provide `withLock`, because applying an action is a read-modify-write:
+ * without a lock two simultaneous actions lose one of the updates (for example
+ * two players joining at once and only one of them showing up).
  */
 export interface RoomStore {
     readonly kind: 'redis' | 'memory'
-    /** จองรหัสห้อง — คืน false ถ้ารหัสนั้นถูกใช้อยู่แล้ว */
+    /** Reserve a room code. Returns false if that code is already taken. */
     claim(code: string, record: RoomRecord): Promise<boolean>
     get(code: string): Promise<RoomRecord | null>
     put(code: string, record: RoomRecord): Promise<void>
@@ -45,9 +47,68 @@ function randomToken() {
     return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
+/* --------------------------- record (de)serialization --------------------------- */
+
+function looksLikeRoomRecord(value: unknown): value is RoomRecord {
+    if (typeof value !== 'object' || value === null) return false
+    const record = value as Partial<RoomRecord>
+    if (!Array.isArray(record.deck)) return false
+    const state = record.state
+    return (
+        typeof state === 'object' &&
+        state !== null &&
+        typeof state.code === 'string' &&
+        typeof state.version === 'number' &&
+        Array.isArray(state.players)
+    )
+}
+
+/**
+ * Turn whatever came back from Redis into a RoomRecord, or fail loudly.
+ *
+ * This has to be defensive. `@upstash/redis` degrades silently in two places:
+ * its base64 decoder returns its raw input if `atob` throws, and its JSON
+ * parser returns its raw input if `JSON.parse` throws. So a `get` typed as
+ * `RoomRecord` can hand back a plain string at runtime, which is truthy and
+ * therefore sails past a `if (!record)` check. The next property access then
+ * blows up somewhere far away with "Cannot read properties of undefined",
+ * surfacing as an opaque 500 on an endpoint that has nothing to do with the
+ * real problem.
+ *
+ * We serialize and parse ourselves (see `automaticDeserialization: false`) so
+ * that layer is out of the picture, and we still validate the shape here so a
+ * corrupted value can never propagate as `undefined`.
+ */
+function decodeRecord(code: string, raw: unknown): RoomRecord | null {
+    if (raw === null || raw === undefined) return null
+
+    let value: unknown = raw
+    if (typeof raw === 'string') {
+        try {
+            value = JSON.parse(raw)
+        } catch {
+            console.error(
+                `[doraemon] room ${code}: stored value is not valid JSON ` +
+                    `(length ${raw.length}, starts with ${JSON.stringify(raw.slice(0, 32))})`
+            )
+            throw new RoomError('ข้อมูลวงเสียหาย ลองสร้างวงใหม่นะ', 500)
+        }
+    }
+
+    if (!looksLikeRoomRecord(value)) {
+        console.error(`[doraemon] room ${code}: stored value has unexpected shape (${typeof value})`)
+        throw new RoomError('ข้อมูลวงเสียหาย ลองสร้างวงใหม่นะ', 500)
+    }
+
+    return value
+}
+
 /* ------------------------------- Redis ------------------------------- */
 
-/** ปล่อย lock เฉพาะตอนที่ยังเป็นของเรา — ต้องทำเป็น atomic ไม่งั้นอาจปลด lock ของคนอื่น */
+/**
+ * Release the lock only while we still hold it. Has to be atomic, otherwise we
+ * could delete a lock that another request acquired after ours expired.
+ */
 const RELEASE_SCRIPT = `
 if redis.call('get', KEYS[1]) == ARGV[1] then
   return redis.call('del', KEYS[1])
@@ -61,17 +122,20 @@ class RedisRoomStore implements RoomStore {
     constructor(private readonly redis: Redis) {}
 
     async claim(code: string, record: RoomRecord) {
-        const result = await this.redis.set(key(code), record, { nx: true, ex: ROOM_TTL_SECONDS })
+        const result = await this.redis.set(key(code), JSON.stringify(record), {
+            nx: true,
+            ex: ROOM_TTL_SECONDS,
+        })
         return result === 'OK'
     }
 
     async get(code: string) {
-        return (await this.redis.get<RoomRecord>(key(code))) ?? null
+        return decodeRecord(code, await this.redis.get<unknown>(key(code)))
     }
 
     async put(code: string, record: RoomRecord) {
-        // ต่ออายุ TTL ทุกครั้งที่เขียน วงที่ยังเล่นอยู่จะไม่หายไปกลางเกม
-        await this.redis.set(key(code), record, { ex: ROOM_TTL_SECONDS })
+        // Refresh the TTL on every write so a room in play never expires mid-game.
+        await this.redis.set(key(code), JSON.stringify(record), { ex: ROOM_TTL_SECONDS })
     }
 
     async remove(code: string) {
@@ -95,8 +159,8 @@ class RedisRoomStore implements RoomStore {
             await sleep(LOCK_RETRY_MS)
         }
 
-        // รอไม่ไหวแล้ว — ยอมทำต่อโดยไม่มี lock ดีกว่าเด้ง error ใส่หน้าคนเล่น
-        // (lock มี TTL 4 วิ ถ้าถึงจุดนี้แปลว่ามีอะไรค้างอยู่จริง)
+        // Waited long enough. Proceeding without the lock beats throwing an
+        // error at a player mid-game; the lock's own 4s TTL bounds the damage.
         if (!acquired) return fn()
 
         try {
@@ -105,7 +169,7 @@ class RedisRoomStore implements RoomStore {
             try {
                 await this.redis.eval(RELEASE_SCRIPT, [lockKey(code)], [token])
             } catch {
-                // ปล่อยให้ TTL หมดอายุเอง
+                // Leave it to expire on its own.
             }
         }
     }
@@ -118,17 +182,34 @@ interface MemoryEntry {
     expiresAt: number
 }
 
-const globalStore = globalThis as unknown as {
+interface MemoryGlobals {
     __doraemonRooms?: Map<string, MemoryEntry>
     __doraemonLocks?: Map<string, Promise<unknown>>
+}
+
+/**
+ * Reuse a Map cached on globalThis when we can, so state survives HMR in
+ * development. Best effort only: some runtimes seal globalThis, and an
+ * unhandled TypeError here would take down every endpoint at once.
+ */
+function sharedMap<T>(name: keyof MemoryGlobals): Map<string, T> {
+    try {
+        const globals = globalThis as unknown as MemoryGlobals
+        const existing = globals[name]
+        if (existing) return existing as Map<string, T>
+        const created = new Map<string, T>()
+        globals[name] = created as never
+        return created
+    } catch {
+        return new Map<string, T>()
+    }
 }
 
 class MemoryRoomStore implements RoomStore {
     readonly kind = 'memory' as const
 
-    // เก็บบน globalThis เพื่อให้รอด HMR ตอน dev
-    private rooms = (globalStore.__doraemonRooms ??= new Map())
-    private locks = (globalStore.__doraemonLocks ??= new Map())
+    private rooms = sharedMap<MemoryEntry>('__doraemonRooms')
+    private locks = sharedMap<Promise<unknown>>('__doraemonLocks')
 
     private sweep() {
         const now = Date.now()
@@ -157,7 +238,7 @@ class MemoryRoomStore implements RoomStore {
         this.rooms.delete(code)
     }
 
-    /** ต่อคิว action ของห้องเดียวกันให้ทำทีละอัน */
+    /** Queue actions on the same room so they run one at a time. */
     async withLock<T>(code: string, fn: () => Promise<T>): Promise<T> {
         const previous = this.locks.get(code) ?? Promise.resolve()
         const current = previous.then(fn, fn)
@@ -176,34 +257,51 @@ class MemoryRoomStore implements RoomStore {
 /* ------------------------------ selection ---------------------------- */
 
 let store: RoomStore | null = null
+/** Set when building the Redis store failed, so /api/health can report it. */
+let storeInitError: string | null = null
 
 const URL_VARS = ['UPSTASH_REDIS_REST_URL', 'KV_REST_API_URL'] as const
 const TOKEN_VARS = ['UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN'] as const
 
 /**
- * หาชื่อ env ตัวแรกที่ "มีค่าจริง"
+ * Clean up a value pasted into a dashboard.
  *
- * ต้องเช็คว่าไม่ใช่ค่าว่างด้วย ไม่ใช่แค่ `??` เพราะ Vercel สร้าง env
- * ที่มีค่าเป็นสตริงว่างได้ ถ้าใช้ `??` ตัวว่างจะบังตัวที่มีค่าจริงที่อยู่ถัดไป
- * แล้วแอปจะเงียบๆ ตกไปใช้ in-memory store แทน
+ * Surrounding quotes are the common one: `.env` files quote their values, so
+ * copying a line out of one and pasting it into Vercel stores the quotes as
+ * part of the value. The Upstash client then rejects `"https://...` because it
+ * does not start with `https`, and throws — which is a very confusing way to
+ * find out you have a stray quote.
+ */
+function cleanEnvValue(raw: string | undefined) {
+    if (!raw) return undefined
+    return raw.trim().replace(/^['"]|['"]$/g, '').trim()
+}
+
+/**
+ * Find the first of these variables that actually holds a value.
+ *
+ * Checking for emptiness matters, not just `??`: Vercel lets you create an
+ * environment variable with an empty string, and with `??` that empty value
+ * would shadow a working one later in the list, quietly dropping the app to the
+ * in-memory store.
  */
 function firstSet(names: readonly string[]) {
     for (const name of names) {
-        const value = process.env[name]?.trim()
+        const value = cleanEnvValue(process.env[name])
         if (value) return { name, value }
     }
     return null
 }
 
 /**
- * ชื่อ env ต่างกันตาม integration ที่กดบน Vercel
- * - Upstash marketplace  -> UPSTASH_REDIS_REST_URL / _TOKEN
- * - Vercel KV            -> KV_REST_API_URL / KV_REST_API_TOKEN
+ * The variable names depend on which integration was added on Vercel:
+ * - Upstash marketplace -> UPSTASH_REDIS_REST_URL / _TOKEN
+ * - Vercel KV           -> KV_REST_API_URL / KV_REST_API_TOKEN
  *
- * สองชุดนี้ชี้ไปที่ REST endpoint เดียวกัน เลยรับได้ทั้งคู่
+ * Both point at the same REST endpoint, so either pair is accepted.
  *
- * ส่วน KV_URL / REDIS_URL เป็น connection string แบบ TCP (rediss://) ใช้กับ
- * @upstash/redis ไม่ได้ และ TCP pool ก็ไม่เหมาะกับ serverless — ไม่ต้องใส่
+ * KV_URL / REDIS_URL are TCP connection strings (`rediss://`). They cannot be
+ * used by @upstash/redis, and TCP pools are a poor fit for serverless anyway.
  */
 export function inspectRedisEnv() {
     const url = firstSet(URL_VARS)
@@ -211,7 +309,7 @@ export function inspectRedisEnv() {
     return {
         url,
         token,
-        /** เอาไปโชว์ได้ — เป็นแค่ชื่อ env ไม่ใช่ค่า */
+        /** Safe to expose: these are variable names, not their values. */
         urlVar: url?.name ?? null,
         tokenVar: token?.name ?? null,
     }
@@ -222,21 +320,54 @@ function readRedisEnv() {
     return url && token ? { url: url.value, token: token.value } : null
 }
 
+/**
+ * Never throws. A store that cannot be built falls back to the in-memory one and
+ * records why, which `/api/health` reports. Throwing from here would surface as
+ * an empty 500 on every endpoint at once, with nothing to debug from.
+ */
 export function getStore(): RoomStore {
     if (store) return store
 
     const env = readRedisEnv()
     if (env) {
-        store = new RedisRoomStore(new Redis({ url: env.url, token: env.token }))
-    } else {
-        if (process.env.VERCEL) {
-            // บน Vercel ห้องจะกระจายไปคนละ instance แล้วเพื่อนจะหาห้องไม่เจอ
-            console.warn(
-                '[doraemon] ไม่พบ UPSTASH_REDIS_REST_URL / _TOKEN — กำลังใช้ in-memory store ' +
-                    'ซึ่งใช้กับ Vercel ไม่ได้ ผู้เล่นจะเห็นห้องไม่ตรงกัน ดูวิธีตั้งค่าใน README'
+        try {
+            store = new RedisRoomStore(
+                new Redis({
+                    url: env.url,
+                    token: env.token,
+                    // We do our own JSON.stringify/parse. The client's automatic
+                    // deserialization returns its raw input when parsing fails
+                    // instead of raising, which turns a decode problem into a
+                    // confusing crash much later. See `decodeRecord`.
+                    automaticDeserialization: false,
+                })
             )
+            return store
+        } catch (error) {
+            storeInitError = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+            console.error('[doraemon] could not create the Redis client:', error)
         }
-        store = new MemoryRoomStore()
     }
+
+    if (!env && process.env.VERCEL) {
+        storeInitError =
+            'Redis credentials not found in this deployment. Connect Upstash for Redis and redeploy.'
+        console.warn(`[doraemon] ${storeInitError}`)
+    }
+
+    store = new MemoryRoomStore()
     return store
+}
+
+/** Diagnostics for /api/health. Safe to call at any time; never throws. */
+export function storeStatus() {
+    const { urlVar, tokenVar } = inspectRedisEnv()
+    const kind = getStore().kind
+    return {
+        store: kind,
+        env: { url: urlVar, token: tokenVar },
+        initError: storeInitError,
+        /** True when this deployment cannot support multiplayer as configured. */
+        misconfigured: kind === 'memory' && !!process.env.VERCEL,
+    }
 }

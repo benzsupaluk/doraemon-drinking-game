@@ -12,7 +12,7 @@ interface Props {
 export function PlayerStrip({ players, turnIndex, meId }: Props) {
     const activeRef = useRef<HTMLLIElement | null>(null)
 
-    // เลื่อนคนที่ถึงตาให้อยู่กลางจอเสมอ วงใหญ่ๆ จะได้ไม่ต้องปัดหา
+    // Keep the active player centred, so nobody has to scroll to find them in a big group.
     useEffect(() => {
         activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
     }, [turnIndex])
