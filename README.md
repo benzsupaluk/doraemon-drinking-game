@@ -206,17 +206,42 @@ You want:
 {
   "ok": true,
   "store": "redis",
-  "onVercel": true,
+  "misconfigured": false,
+  "ignoredUrlVars": [],
+  "initError": null,
   "env": { "url": "KV_REST_API_URL", "token": "KV_REST_API_TOKEN" }
 }
 ```
 
-`env` reports **which variable names** were found (never their values), so you can
-see at a glance whether the credentials arrived and under which naming scheme.
+This endpoint always answers `200`, even when every other route is failing,
+because it is the only thing you have to debug with. Nothing in its response
+ever contains a credential *value* — only variable names.
 
-If it says `"store": "memory"` with `"env": { "url": null, "token": null }`, the
-variables aren't reaching the app — confirm the database is connected to *this*
-project and redeploy. The function logs print a warning in that case too.
+| Field            | Meaning                                                               |
+| ---------------- | --------------------------------------------------------------------- |
+| `store`          | `redis` is what you want; `memory` cannot work on Vercel              |
+| `misconfigured`  | `true` means this deployment cannot support multiplayer as configured |
+| `env`            | Which variable **names** were used, never their values                |
+| `ignoredUrlVars` | Variables that are set but unusable                                   |
+| `initError`      | Set if the Redis client could not be built at all                     |
+
+Common results:
+
+- `"env": { "url": null, "token": null }` — the credentials aren't reaching the
+  app. Confirm the database is connected to *this* project, then **redeploy**:
+  a deployment keeps the environment it was created with, so one made before you
+  attached the database has no credentials.
+- `ignoredUrlVars: ["UPSTASH_REDIS_REST_URL"]` — that variable holds something
+  that isn't an https REST endpoint, almost always because the `rediss://` string
+  from `KV_URL` / `REDIS_URL` was pasted into it. The app skips it and falls
+  through to the next candidate, so the game still works, but delete the variable
+  to clear the warning. **Never paste `KV_URL` or `REDIS_URL` into a `*_REST_URL`
+  variable** — they are different endpoints, and those strings contain the
+  database password.
+- `initError` set — credentials are present but the client could not be built.
+  The full error is in the function logs; this endpoint deliberately does not
+  echo it, because the client's message repeats the URL it was handed and that
+  can carry the password.
 
 ### Cost and limits
 
@@ -413,7 +438,7 @@ src/
 | Friends get "room not found" on Vercel        | Redis isn't attached. Check `/api/health`; if it says `"store":"memory"`, attach Upstash and redeploy |
 | **Every** `/api/*` route returns 500          | Check `/api/health` first — it never fails. `initError` names the cause                               |
 | `/api/health` shows `"store":"memory"` after attaching a database | A deployment keeps the environment it was created with — **redeploy** once after connecting it |
-| `initError` mentions `UrlError`               | The stored URL isn't a bare `https://…` value — most often it was pasted with surrounding quotes      |
+| `ignoredUrlVars` is not empty                 | A `*_REST_URL` variable holds a `rediss://` TCP string. Delete it; the app already falls back         |
 | No alert sound                                | Browsers block audio until a user gesture — one tap anywhere unlocks it. Also check the 🔊 toggle     |
 | iPhone doesn't vibrate                        | iOS doesn't support `navigator.vibrate` at all; the chime covers it. Android vibrates normally        |
 | Asked for a name again after reopening        | `localStorage` was unwritable (Safari private mode), or the room expired                             |
