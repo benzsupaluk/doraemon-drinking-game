@@ -1,54 +1,42 @@
 @import 'tailwindcss';
 
+/*
+ * Minimal theme.
+ *
+ * One typeface, a small palette, hairline borders instead of glass, and only
+ * the animations that carry meaning (the card flip, and a pulse on whoever's
+ * turn it is). Fewer animated layers also means less for a phone to composite.
+ */
 @theme {
-    /* Small phones (iPhone SE) differ enough from normal ones to need a smaller heading. */
+    /* iPhone SE is 375px wide; anything roomier can breathe a little. */
     --breakpoint-xs: 25rem;
 
-    --color-dora-blue: #29abe2;
-    --color-dora-sky: #67d0f7;
-    --color-dora-deep: #0b3c6d;
-    --color-dora-night: #061c33;
-    --color-dora-red: #e8453c;
-    --color-dora-yellow: #ffd93d;
-    --color-dora-cream: #fff7e6;
+    --color-ink: #0e1116;
+    --color-surface: #171c23;
+    --color-line: #262d37;
+    --color-text: #e8ebef;
+    --color-muted: #97a1b0;
+    --color-accent: #4c9aff;
+    --color-accent-ink: #0a1220;
+    --color-drink: #ff7a7a;
+    --color-gold: #e3b341;
+    --color-card: #fbfaf7;
+    --color-card-ink: #1a1f26;
 
-    --font-display: var(--font-mali), system-ui, sans-serif;
-    --font-body: var(--font-thai), system-ui, sans-serif;
+    --font-sans: var(--font-thai), ui-sans-serif, system-ui, sans-serif;
 
-    --animate-float: float 9s ease-in-out infinite;
-    --animate-pop-in: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    --animate-rise: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    --animate-turn-glow: turn-glow 2s ease-in-out infinite;
-    --animate-bell: bell 2.4s ease-in-out infinite;
-    --animate-shine: shine 2.6s linear infinite;
-    --animate-nudge: nudge 0.6s ease-in-out infinite;
+    --radius-field: 0.75rem;
+    --radius-panel: 1rem;
+    --radius-card: 1.125rem;
+
+    --animate-fade-up: fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    --animate-turn: turn 2.4s ease-in-out infinite;
 }
 
-@keyframes float {
-    0%,
-    100% {
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-        transform: translate3d(0, -22px, 0) scale(1.06);
-    }
-}
-
-@keyframes pop-in {
+@keyframes fade-up {
     from {
         opacity: 0;
-        transform: scale(0.86) translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-@keyframes rise {
-    from {
-        opacity: 0;
-        transform: translateY(14px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;
@@ -56,53 +44,13 @@
     }
 }
 
-@keyframes turn-glow {
+@keyframes turn {
     0%,
     100% {
-        box-shadow:
-            0 0 0 0 rgba(255, 217, 61, 0.55),
-            0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        border-color: color-mix(in srgb, var(--color-gold) 55%, transparent);
     }
     50% {
-        box-shadow:
-            0 0 0 10px rgba(255, 217, 61, 0),
-            0 10px 30px -10px rgba(0, 0, 0, 0.5);
-    }
-}
-
-@keyframes bell {
-    0%,
-    70%,
-    100% {
-        transform: rotate(0deg);
-    }
-    78% {
-        transform: rotate(14deg);
-    }
-    86% {
-        transform: rotate(-12deg);
-    }
-    93% {
-        transform: rotate(6deg);
-    }
-}
-
-@keyframes shine {
-    from {
-        transform: translateX(-140%) rotate(20deg);
-    }
-    to {
-        transform: translateX(240%) rotate(20deg);
-    }
-}
-
-@keyframes nudge {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-6px);
+        border-color: color-mix(in srgb, var(--color-gold) 100%, transparent);
     }
 }
 
@@ -114,13 +62,15 @@
     html {
         /* Stop iOS rubber-band scrolling so it feels like an app. */
         overscroll-behavior-y: none;
+        -webkit-text-size-adjust: 100%;
     }
 
     body {
-        font-family: var(--font-body);
-        color: var(--color-dora-cream);
-        background-color: var(--color-dora-night);
-        /* Keep the bottom buttons clear of the iPhone home bar. */
+        font-family: var(--font-sans);
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        color: var(--color-text);
+        background-color: var(--color-ink);
         min-height: 100dvh;
         -webkit-font-smoothing: antialiased;
     }
@@ -128,20 +78,28 @@
     button {
         touch-action: manipulation;
     }
+
+    /* Inputs must be >= 16px or iOS Safari zooms the page on focus. */
+    input {
+        font-size: 1rem;
+    }
 }
 
+/* Phone-width column, centred on anything larger. */
 @utility app-shell {
-    /* Every screen keeps a phone-sized width and centres on larger displays. */
     width: 100%;
-    max-width: 32rem;
+    max-width: 26rem;
     margin-inline: auto;
-    padding-inline: 1.25rem;
+    padding-inline: 1.125rem;
 }
 
-@utility glass {
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    backdrop-filter: blur(14px);
+@utility panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+}
+
+@utility hairline {
+    border: 1px solid var(--color-line);
 }
 
 @utility no-scrollbar {
@@ -151,16 +109,24 @@
     }
 }
 
+/* Small caps-ish label used above groups and on the card. */
+@utility label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+}
+
 /* ---------- 3D card ---------- */
 
 @utility card-stage {
-    perspective: 1400px;
+    perspective: 1200px;
 }
 
 @utility card-3d {
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 0.55s cubic-bezier(0.3, 0.8, 0.25, 1);
 }
 
 @utility card-face {
@@ -168,7 +134,7 @@
     inset: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    border-radius: 1.25rem;
+    border-radius: var(--radius-card);
     overflow: hidden;
 }
 
@@ -180,16 +146,10 @@
     transform: rotateY(180deg);
 }
 
-/* Card back pattern, bell theme. */
+/* Card back: flat, one tone, no pattern. */
 @utility card-back-art {
-    background:
-        radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.35), transparent 42%),
-        repeating-linear-gradient(
-            45deg,
-            rgba(255, 255, 255, 0.08) 0 8px,
-            transparent 8px 16px
-        ),
-        linear-gradient(150deg, var(--color-dora-sky), var(--color-dora-blue) 45%, var(--color-dora-deep));
+    background: #1d2a3a;
+    border: 1px solid #2b3b50;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,56 +26,56 @@ export function RulesSheet({ open, onClose }: { open: boolean; onClose: () => vo
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-            <button
-                aria-label="ปิดกฎ"
-                onClick={onClose}
-                className="absolute inset-0 bg-black/65 backdrop-blur-sm"
-            />
-            <div className="animate-rise relative flex max-h-[86dvh] w-full max-w-lg flex-col rounded-t-4xl border-t border-white/20 bg-dora-night/95 pb-[env(safe-area-inset-bottom)] shadow-2xl">
-                <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                    <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-                        กฎเกมส์โดรามอน
-                    </h2>
+            <button aria-label="ปิดกฎ" onClick={onClose} className="absolute inset-0 bg-black/60" />
+            <div className="animate-fade-up relative flex max-h-[88dvh] w-full max-w-[26rem] flex-col rounded-t-panel border-t border-line bg-ink pb-[env(safe-area-inset-bottom)]">
+                <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+                    <h2 className="font-semibold">กฎการเล่น</h2>
                     <button
                         onClick={onClose}
-                        className="glass flex size-9 items-center justify-center rounded-full text-lg"
+                        aria-label="ปิด"
+                        className="flex size-8 items-center justify-center rounded-full border border-line text-muted"
                     >
                         ✕
                     </button>
                 </div>
 
-                <div className="no-scrollbar flex-1 space-y-2 overflow-y-auto px-5 pb-6">
-                    {GLOBAL_RULES.map((rule) => (
-                        <div
-                            key={rule.title}
-                            className="flex gap-3 rounded-2xl border border-dora-red/30 bg-dora-red/10 p-3"
-                        >
-                            <span className="text-2xl">{rule.emoji}</span>
-                            <div>
-                                <p className="font-bold text-dora-yellow">{rule.title}</p>
-                                <p className="text-[13px] leading-relaxed text-dora-cream/75">{rule.detail}</p>
-                            </div>
-                        </div>
-                    ))}
-
-                    {ORDER.map((rank) => {
-                        const rule = CARD_RULES[rank]
-                        return (
-                            <div key={rank} className="glass flex gap-3 rounded-2xl p-3">
-                                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-dora-cream text-xl font-black text-dora-deep">
-                                    {rank}
-                                </span>
+                <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-4">
+                    <p className="label mb-2">ตลอดเกม</p>
+                    <ul className="mb-5 space-y-2">
+                        {GLOBAL_RULES.map((rule) => (
+                            <li key={rule.title} className="flex gap-3">
+                                <span className="text-base">{rule.emoji}</span>
                                 <div className="min-w-0">
-                                    <p className="font-bold">
-                                        {rule.emoji} {rule.title}
+                                    <p className="text-[0.875rem] font-semibold text-gold">
+                                        {rule.title}
                                     </p>
-                                    <p className="text-[13px] leading-relaxed text-dora-cream/70">
+                                    <p className="text-[0.8125rem] leading-relaxed text-muted">
                                         {rule.detail}
                                     </p>
                                 </div>
-                            </div>
-                        )
-                    })}
+                            </li>
+                        ))}
+                    </ul>
+
+                    <p className="label mb-2">ไพ่แต่ละใบ</p>
+                    <ul className="divide-y divide-line">
+                        {ORDER.map((rank) => {
+                            const rule = CARD_RULES[rank]
+                            return (
+                                <li key={rank} className="flex gap-3 py-2.5">
+                                    <span className="w-7 shrink-0 text-center text-[0.9375rem] font-semibold text-accent">
+                                        {rank}
+                                    </span>
+                                    <div className="min-w-0">
+                                        <p className="text-[0.875rem] font-medium">{rule.title}</p>
+                                        <p className="text-[0.8125rem] leading-relaxed text-muted">
+                                            {rule.detail}
+                                        </p>
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ul>
                 </div>
             </div>
         </div>

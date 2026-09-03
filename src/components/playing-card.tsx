@@ -4,11 +4,12 @@ import { BellMark } from './bell-mark'
 import { CARD_RULES, KING_STEPS, SUIT_SYMBOL } from '@/lib/rules'
 import type { Card } from '@/lib/types'
 
-const TONE_STYLE = {
-    drink: { ring: '#e8453c', label: 'ดื่มเลย', chip: 'bg-dora-red/15 text-dora-red' },
-    game: { ring: '#1f9d55', label: 'เล่นเกม', chip: 'bg-emerald-500/15 text-emerald-700' },
-    target: { ring: '#2b6cb0', label: 'เล็งคนอื่น', chip: 'bg-dora-blue/15 text-dora-deep' },
-    special: { ring: '#b7791f', label: 'พิเศษ', chip: 'bg-dora-yellow/25 text-[#7a5200]' },
+/** One accent line per rule kind. Kept faint: the rule text does the work. */
+const TONE = {
+    drink: { rule: '#e05252', label: 'ดื่ม' },
+    game: { rule: '#3f8f6b', label: 'เล่นเกม' },
+    target: { rule: '#3a72b8', label: 'สั่งคนอื่น' },
+    special: { rule: '#b8862f', label: 'พิเศษ' },
 } as const
 
 function isRed(card: Card) {
@@ -22,100 +23,75 @@ interface Props {
     kingCount?: number
     /** Text shown on the card back, e.g. "tap the card to flip it". */
     backHint?: string
-    /** Animate the icon on the card back; used when it is this player's turn. */
-    nudge?: boolean
     className?: string
 }
 
-export function PlayingCard({
-    card,
-    flipped,
-    kingCount = 0,
-    backHint,
-    nudge = false,
-    className = '',
-}: Props) {
+export function PlayingCard({ card, flipped, kingCount = 0, backHint, className = '' }: Props) {
     const rule = card ? CARD_RULES[card.rank] : null
-    const tone = rule ? TONE_STYLE[rule.tone] : TONE_STYLE.special
+    const tone = rule ? TONE[rule.tone] : TONE.special
     const kingStep = card?.rank === 'K' ? KING_STEPS[Math.min(Math.max(kingCount, 1), 4) - 1] : null
 
     return (
         <div className={`card-stage ${className}`}>
-            <div className={`card-3d aspect-5/7 w-full ${flipped ? 'is-flipped' : ''}`}>
-                {/* หลังไพ่ */}
-                <div className="card-face card-back-art flex items-center justify-center border-4 border-white/85 shadow-[0_24px_50px_-18px_rgba(0,0,0,0.75)]">
-                    <div className="relative flex flex-col items-center gap-3 px-5">
-                        <BellMark
-                            className={`size-20 drop-shadow-lg ${nudge ? 'animate-nudge' : ''}`}
-                            animated={!nudge}
-                        />
-                        <p
-                            className="text-center text-lg font-bold tracking-wide text-white drop-shadow"
-                            style={{ fontFamily: 'var(--font-display)' }}
-                        >
-                            {backHint ?? 'โดรามอน'}
+            <div className={`card-3d size-full ${flipped ? 'is-flipped' : ''}`}>
+                {/* Back */}
+                <div className="card-face card-back-art flex flex-col items-center justify-center gap-3 px-6">
+                    <BellMark className="size-9 text-accent/70" />
+                    {backHint && (
+                        <p className="text-center text-[0.8125rem] font-medium text-text/70">
+                            {backHint}
                         </p>
-                    </div>
-                    {/* แสงวิ่งผ่านให้ดูมีชีวิต */}
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                        <div className="animate-shine absolute top-0 -left-1/2 h-[200%] w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-                    </div>
+                    )}
                 </div>
 
-                {/* หน้าไพ่ */}
-                <div
-                    className="card-face card-face-back flex flex-col bg-dora-cream text-dora-night shadow-[0_24px_50px_-18px_rgba(0,0,0,0.75)]"
-                    style={{ borderTop: `10px solid ${tone.ring}` }}
-                >
+                {/* Face */}
+                <div className="card-face card-face-back flex flex-col bg-card text-card-ink">
                     {card && rule && (
                         <>
-                            <div className="flex items-start justify-between px-4 pt-3">
-                                <CornerRank card={card} />
-                                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${tone.chip}`}>
+                            <div className="flex items-start justify-between px-4 pt-3.5">
+                                <span
+                                    className="text-lg leading-none font-semibold"
+                                    style={{ color: isRed(card) ? '#c0392b' : '#1a1f26' }}
+                                >
+                                    {card.rank}
+                                    <span className="ml-0.5 text-[0.9em]">
+                                        {SUIT_SYMBOL[card.suit]}
+                                    </span>
+                                </span>
+                                <span
+                                    className="text-[0.625rem] font-semibold tracking-[0.08em]"
+                                    style={{ color: tone.rule }}
+                                >
                                     {tone.label}
                                 </span>
                             </div>
 
-                            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center">
-                                <span className="animate-pop-in text-6xl leading-none drop-shadow-sm">
-                                    {rule.emoji}
-                                </span>
-                                <h2
-                                    className="text-3xl leading-tight font-bold text-dora-deep"
-                                    style={{ fontFamily: 'var(--font-display)' }}
-                                >
+                            <div className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 pb-2 text-center">
+                                <span className="text-[2.25rem] leading-none">{rule.emoji}</span>
+                                <h2 className="text-xl leading-snug font-semibold">
                                     {kingStep ? 'ราชาสั่งได้' : rule.title}
                                 </h2>
                                 {kingStep && (
-                                    <p className="text-sm font-bold text-dora-red">{kingStep.title}</p>
+                                    <p
+                                        className="text-[0.75rem] font-semibold"
+                                        style={{ color: tone.rule }}
+                                    >
+                                        {kingStep.title}
+                                    </p>
                                 )}
-                                <p className="text-[13px] leading-relaxed text-dora-night/70">
+                                <p className="text-[0.8125rem] leading-relaxed text-card-ink/60">
                                     {kingStep ? kingStep.detail : rule.detail}
                                 </p>
                             </div>
 
-                            <div className="flex items-end justify-between px-4 pb-3">
-                                <span className="text-[11px] font-semibold text-dora-night/30">
-                                    เกมส์โดรามอน 🔔
-                                </span>
-                                <CornerRank card={card} flipped />
-                            </div>
+                            <div
+                                className="h-1 w-full shrink-0"
+                                style={{ backgroundColor: tone.rule }}
+                            />
                         </>
                     )}
                 </div>
             </div>
-        </div>
-    )
-}
-
-function CornerRank({ card, flipped = false }: { card: Card; flipped?: boolean }) {
-    return (
-        <div
-            className={`flex flex-col items-center leading-none ${flipped ? 'rotate-180' : ''}`}
-            style={{ color: isRed(card) ? '#e8453c' : '#0b3c6d' }}
-        >
-            <span className="text-2xl font-black">{card.rank}</span>
-            <span className="text-xl">{SUIT_SYMBOL[card.suit]}</span>
         </div>
     )
 }
@@ -128,15 +104,15 @@ function CornerRank({ card, flipped = false }: { card: Card; flipped?: boolean }
  * the stack would end up rendering *above* the top card instead.
  */
 export function DeckStack({ count, className = '' }: { count: number; className?: string }) {
-    const layers = Math.min(3, Math.max(0, Math.ceil(count / 6)))
+    const layers = Math.min(2, Math.max(0, Math.ceil(count / 12)))
     return (
-        <div className={`card-stage ${className}`}>
+        <div className={className}>
             {Array.from({ length: layers }).map((_, index) => (
                 <div
                     key={index}
-                    className="card-back-art absolute inset-0 rounded-[1.25rem] border-4 border-white/70 opacity-70"
+                    className="card-back-art absolute inset-0 rounded-card opacity-60"
                     style={{
-                        transform: `translate(${(layers - index) * 4}px, ${(layers - index) * 5}px) rotate(${(layers - index) * 1.6}deg)`,
+                        transform: `translate(${(layers - index) * 3}px, ${(layers - index) * 4}px)`,
                     }}
                 />
             ))}

@@ -13,10 +13,30 @@ import { usePlayerId } from '@/hooks/use-session'
 import type { RoomState } from '@/lib/types'
 import { clearPlayerId, savePlayerId } from '@/lib/session'
 
-export function RoomClient({ code, origin }: { code: string; origin: string }) {
-    const { state, connection, error, setError, act, fatal, adoptState } = useRoom(code)
-    // Read straight from localStorage via an external store, so no setState in an effect.
-    const playerId = usePlayerId(code)
+interface RoomClientProps {
+    code: string
+    origin: string
+    /** Room state read on the server, so the first paint needs no round trip. */
+    initialState: RoomState | null
+    initialMissing: boolean
+    /** Player id resolved from the cookie on the server, so SSR picks the right screen. */
+    initialPlayerId: string | null
+}
+
+export function RoomClient({
+    code,
+    origin,
+    initialState,
+    initialMissing,
+    initialPlayerId,
+}: RoomClientProps) {
+    const { state, connection, error, setError, act, fatal, adoptState } = useRoom(code, {
+        initialState,
+        initialMissing,
+    })
+    // Read straight from the cookie via an external store, so no setState in an
+    // effect, and the server snapshot matches what SSR already rendered.
+    const playerId = usePlayerId(code, initialPlayerId)
 
     // Browsers block audio until the user gestures. Someone rejoining a room
     // from localStorage may not have pressed anything yet, so catch the first tap.
@@ -133,35 +153,26 @@ function usePlayerJoinSound(count: number, inLobby: boolean) {
 
 function LoadingScreen({ label }: { label: string }) {
     return (
-        <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4">
-            <div className="size-12 animate-spin rounded-full border-4 border-dora-sky/30 border-t-dora-sky" />
-            <p className="text-dora-cream/70">{label}</p>
+        <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-3">
+            <div className="size-6 animate-spin rounded-full border-2 border-line border-t-accent" />
+            <p className="text-[0.8125rem] text-muted">{label}</p>
         </main>
     )
 }
 
 function ErrorScreen({ code, reason }: { code: string; reason: string }) {
     return (
-        <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 text-center">
-            <span className="text-6xl">🫠</span>
-            <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-                เข้าวง {code} ไม่ได้
-            </h1>
-            <p className="text-sm text-dora-cream/80">{reason}</p>
-            <p className="text-xs text-dora-cream/50">ลองขอลิงก์ใหม่จากหัวตี้ หรือสร้างวงเองก็ได้</p>
-            <div className="flex w-full max-w-xs flex-col gap-2 pt-2">
+        <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-3 text-center">
+            <h1 className="text-lg font-semibold">เข้าวง {code} ไม่ได้</h1>
+            <p className="text-[0.8125rem] text-muted">{reason}</p>
+            <div className="flex w-full max-w-[16rem] flex-col gap-2 pt-2">
                 <button
                     onClick={() => window.location.reload()}
-                    className="glass rounded-2xl px-6 py-3 font-bold text-dora-cream"
-                    style={{ fontFamily: 'var(--font-display)' }}
+                    className="panel min-h-12 rounded-field px-5 text-[0.9375rem] font-semibold"
                 >
                     ลองใหม่อีกครั้ง
                 </button>
-                <Link
-                    href="/"
-                    className="rounded-2xl px-6 py-3 text-sm font-semibold text-dora-sky"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                >
+                <Link href="/" className="py-2 text-[0.8125rem] font-medium text-accent">
                     กลับหน้าแรก
                 </Link>
             </div>

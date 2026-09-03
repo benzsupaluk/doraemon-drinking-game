@@ -15,11 +15,11 @@ import {
  * during SSR. React then swaps in the real value after hydration on its own,
  * with no setState inside an effect.
  */
-export function usePlayerId(code: string) {
+export function usePlayerId(code: string, serverValue: string | null) {
     return useSyncExternalStore(
         subscribeSession,
         () => loadPlayerId(code),
-        () => null
+        () => serverValue
     )
 }
 

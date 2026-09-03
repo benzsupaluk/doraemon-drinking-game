@@ -3,15 +3,12 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { playTap, unlockAudio } from '@/lib/feedback'
 
-type Variant = 'primary' | 'ghost' | 'danger' | 'gold'
+type Variant = 'primary' | 'ghost' | 'gold'
 
 const VARIANTS: Record<Variant, string> = {
-    primary:
-        'bg-gradient-to-b from-dora-sky to-dora-blue text-dora-night shadow-[0_10px_0_-2px_#0b3c6d,0_18px_30px_-12px_rgba(41,171,226,0.8)]',
-    gold: 'bg-gradient-to-b from-dora-yellow to-[#f0ab13] text-[#4a2d00] shadow-[0_10px_0_-2px_#8a5a08,0_18px_30px_-12px_rgba(255,217,61,0.7)]',
-    danger:
-        'bg-gradient-to-b from-[#ff6b60] to-dora-red text-white shadow-[0_10px_0_-2px_#8c1f18,0_18px_30px_-12px_rgba(232,69,60,0.7)]',
-    ghost: 'glass text-dora-cream shadow-none',
+    primary: 'bg-accent text-accent-ink',
+    gold: 'bg-gold text-[#241a02]',
+    ghost: 'panel text-text',
 }
 
 /**
@@ -46,24 +43,33 @@ export function Button({
                 if (!silent) playTap()
                 onClick?.(event)
             }}
-            className={`relative inline-flex min-h-13 items-center justify-center gap-2 overflow-hidden rounded-2xl px-5 text-lg font-bold transition-[transform,filter] duration-150 active:translate-y-1 active:brightness-95 disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none ${VARIANTS[variant]} ${className}`}
-            style={{ fontFamily: 'var(--font-display)' }}
+            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-field px-5 text-[0.9375rem] font-semibold transition-opacity active:opacity-70 disabled:pointer-events-none disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
         >
-            {loading ? <span className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : children}
+            {loading ? (
+                <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+                children
+            )}
         </button>
     )
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-    return <div className={`glass rounded-3xl p-5 ${className}`}>{children}</div>
+export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
+    return <div className={`panel rounded-panel p-4 ${className}`}>{children}</div>
 }
 
-export function Pill({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Field({
+    label,
+    className = '',
+    ...rest
+}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
     return (
-        <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${className}`}
-        >
-            {children}
-        </span>
+        <label className="block space-y-1.5">
+            <span className="label block">{label}</span>
+            <input
+                {...rest}
+                className={`w-full rounded-field border border-line bg-ink px-3.5 py-3 font-medium text-text placeholder:text-muted/60 focus:border-accent focus:outline-none ${className}`}
+            />
+        </label>
     )
 }

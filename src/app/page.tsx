@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { BellMark, WhiskerLine } from '@/components/bell-mark'
+import { BellMark } from '@/components/bell-mark'
 import { RulesSheet } from '@/components/rules-sheet'
-import { Button } from '@/components/ui'
+import { Button, Field, Panel } from '@/components/ui'
 import { createRoom } from '@/lib/api'
 import { playStart, unlockAudio } from '@/lib/feedback'
 import { useRememberedName } from '@/hooks/use-session'
@@ -58,84 +58,60 @@ export default function HomePage() {
 
     return (
         <main className="app-shell flex min-h-dvh flex-col justify-center gap-6 py-10">
-            <header className="animate-rise flex flex-col items-center gap-3 text-center">
-                <BellMark className="size-24 drop-shadow-[0_10px_24px_rgba(255,217,61,0.35)]" animated />
-                <h1
-                    className="text-4xl leading-tight font-bold text-white drop-shadow-lg xs:text-5xl"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                >
+            <header className="animate-fade-up flex flex-col items-center gap-2.5 text-center">
+                <BellMark className="size-10 text-accent" />
+                <h1 className="text-[1.75rem] leading-tight font-semibold xs:text-[2rem]">
                     เกมส์โดรามอน
                 </h1>
-                <WhiskerLine className="h-4 w-40 text-dora-sky" />
-                <p className="max-w-xs text-sm leading-relaxed text-dora-cream/75">
-                    เกมไพ่วงเหล้าสุดฮา เปิดไพ่ไปเรื่อยๆ ใครได้ไพ่อะไรก็ทำตามนั้น
-                    เล่นพร้อมกันได้ทั้งวงจากมือถือของแต่ละคน
+                <p className="max-w-[19rem] text-[0.8125rem] leading-relaxed text-muted">
+                    เกมไพ่วงเหล้า เปิดไพ่ไปเรื่อยๆ ใครได้ไพ่อะไรก็ทำตามนั้น
+                    เล่นพร้อมกันทั้งวงจากมือถือของแต่ละคน
                 </p>
             </header>
 
-            <section
-                className="glass animate-rise space-y-4 rounded-3xl p-5"
-                style={{ animationDelay: '80ms' }}
-            >
-                <div className="space-y-2">
-                    <label htmlFor="host-name" className="text-sm font-semibold text-dora-cream/80">
-                        ชื่อหัวตี้
-                    </label>
-                    <input
-                        id="host-name"
-                        value={name}
-                        onChange={(event) => setTyped(event.target.value)}
-                        maxLength={16}
-                        placeholder="เช่น โนบิตะ"
-                        autoComplete="off"
-                        className="w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3.5 text-lg font-semibold text-white placeholder:text-white/35 focus:border-dora-sky focus:outline-none"
-                    />
-                </div>
+            <Panel className="animate-fade-up space-y-4">
+                <Field
+                    label="ชื่อหัวตี้"
+                    value={name}
+                    onChange={(event) => setTyped(event.target.value)}
+                    maxLength={16}
+                    placeholder="เช่น โนบิตะ"
+                    autoComplete="off"
+                />
 
-                <div className="space-y-2">
-                    <label className="text-sm font-semibold text-dora-cream/80">จำนวนสมาชิกในวง</label>
-                    <div className="flex items-center gap-3">
+                <div className="space-y-1.5">
+                    <span className="label block">จำนวนสมาชิกในวง</span>
+                    <div className="flex items-center gap-2">
                         <Stepper
                             label="ลด"
                             symbol="−"
-                            onClick={() => setMaxPlayers((value) => Math.max(MIN_PLAYERS, value - 1))}
+                            onClick={() => setMaxPlayers((v) => Math.max(MIN_PLAYERS, v - 1))}
                             disabled={maxPlayers <= MIN_PLAYERS}
                         />
-                        <div className="flex-1 rounded-2xl border border-white/20 bg-white/10 py-2.5 text-center">
-                            <p
-                                className="text-4xl leading-none font-bold text-dora-yellow"
-                                style={{ fontFamily: 'var(--font-display)' }}
-                            >
-                                {maxPlayers}
-                            </p>
-                            <p className="text-xs text-dora-cream/55">คน</p>
+                        <div className="flex-1 rounded-field border border-line bg-ink py-2.5 text-center">
+                            <span className="text-xl font-semibold">{maxPlayers}</span>
+                            <span className="ml-1 text-[0.8125rem] text-muted">คน</span>
                         </div>
                         <Stepper
                             label="เพิ่ม"
                             symbol="+"
-                            onClick={() => setMaxPlayers((value) => Math.min(MAX_PLAYERS, value + 1))}
+                            onClick={() => setMaxPlayers((v) => Math.min(MAX_PLAYERS, v + 1))}
                             disabled={maxPlayers >= MAX_PLAYERS}
                         />
                     </div>
-                    <p className="text-xs text-dora-cream/50">
-                        สร้างวงแล้วจะได้ลิงก์ไปแชร์ให้เพื่อนกดเข้ามาได้เลย
-                    </p>
                 </div>
 
-                <Button variant="gold" loading={loading} onClick={handleCreate} silent className="w-full">
-                    🔔 สร้างวงใหม่
+                <Button variant="primary" loading={loading} onClick={handleCreate} silent className="w-full">
+                    สร้างวงใหม่
                 </Button>
-                {error && <p className="text-center text-sm font-semibold text-dora-red">{error}</p>}
-            </section>
+                {error && <p className="text-center text-[0.8125rem] text-drink">{error}</p>}
+            </Panel>
 
-            <section
-                className="animate-rise space-y-3"
-                style={{ animationDelay: '160ms' }}
-            >
-                <div className="flex items-center gap-3 text-xs text-dora-cream/40">
-                    <span className="h-px flex-1 bg-white/15" />
-                    หรือมีรหัสวงอยู่แล้ว
-                    <span className="h-px flex-1 bg-white/15" />
+            <section className="animate-fade-up space-y-2.5">
+                <div className="flex items-center gap-3">
+                    <span className="h-px flex-1 bg-line" />
+                    <span className="label">หรือมีรหัสวงอยู่แล้ว</span>
+                    <span className="h-px flex-1 bg-line" />
                 </div>
                 <div className="flex gap-2">
                     <input
@@ -146,9 +122,10 @@ export default function HomePage() {
                         inputMode="text"
                         autoCapitalize="characters"
                         autoComplete="off"
-                        className="min-w-0 flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-3.5 text-center text-2xl font-black tracking-[0.4em] text-white uppercase placeholder:tracking-[0.4em] placeholder:text-white/25 focus:border-dora-sky focus:outline-none"
+                        aria-label="รหัสวง"
+                        className="min-w-0 flex-1 rounded-field border border-line bg-ink px-3.5 py-3 text-center text-lg font-semibold tracking-[0.3em] uppercase placeholder:text-muted/40 focus:border-accent focus:outline-none"
                     />
-                    <Button variant="ghost" onClick={handleJoin} className="shrink-0 px-6">
+                    <Button variant="ghost" onClick={handleJoin} className="shrink-0">
                         เข้าวง
                     </Button>
                 </div>
@@ -156,10 +133,9 @@ export default function HomePage() {
 
             <button
                 onClick={() => setRulesOpen(true)}
-                className="animate-rise mx-auto text-sm font-semibold text-dora-sky underline decoration-dotted underline-offset-4"
-                style={{ animationDelay: '220ms' }}
+                className="animate-fade-up mx-auto text-[0.8125rem] font-medium text-accent"
             >
-                อ่านกฎทั้งหมดก่อนเล่น →
+                อ่านกฎทั้งหมด
             </button>
 
             <RulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
@@ -183,7 +159,7 @@ function Stepper({
             aria-label={label}
             onClick={onClick}
             disabled={disabled}
-            className="glass flex size-14 shrink-0 items-center justify-center rounded-2xl text-3xl font-bold text-white transition active:scale-90 disabled:opacity-30"
+            className="flex size-12 shrink-0 items-center justify-center rounded-field border border-line bg-ink text-xl font-medium transition-opacity active:opacity-60 disabled:opacity-30"
         >
             {symbol}
         </button>

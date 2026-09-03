@@ -51,42 +51,32 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
     const needsBuddy = isMyTurn && state.awaitingBuddy
 
     return (
-        <main className="app-shell flex min-h-dvh flex-col gap-3 pb-4">
+        <main className="app-shell flex h-dvh flex-col overflow-hidden">
             <RoomHeader
                 code={state.code}
                 connection={connection}
                 right={
-                    <span className="glass flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-bold">
-                        🃏 {state.deckCount}
+                    <span className="mr-1 text-[0.75rem] text-muted">
+                        เหลือ {state.deckCount}
                     </span>
                 }
             />
 
             <PlayerStrip players={state.players} turnIndex={state.turnIndex} meId={me.id} />
 
-            {/* ป้ายบอกตาใคร */}
-            <div
-                className={`rounded-2xl px-4 py-2.5 text-center transition-colors ${
-                    isMyTurn ? 'bg-dora-yellow/20 ring-1 ring-dora-yellow/50' : 'glass'
-                }`}
-            >
+            <p className="py-2.5 text-center text-[0.8125rem]">
                 {isMyTurn ? (
-                    <p className="text-lg font-bold text-dora-yellow" style={{ fontFamily: 'var(--font-display)' }}>
-                        🔔 ตาของคุณแล้ว!
-                    </p>
+                    <span className="font-semibold text-gold">ตาของคุณ</span>
                 ) : (
-                    <p className="text-sm text-dora-cream/75">
-                        ตาของ{' '}
-                        <span className="font-bold text-white">{currentPlayer?.name ?? '—'}</span>
-                        {revealed ? ' — อ่านกฎบนไพ่กันก่อน' : ' กำลังจะเปิดไพ่...'}
-                    </p>
+                    <span className="text-muted">
+                        ตาของ <span className="font-medium text-text">{currentPlayer?.name ?? '—'}</span>
+                    </span>
                 )}
-            </div>
+            </p>
 
-            {/* พื้นที่ไพ่ */}
-            <div className="relative flex flex-1 items-center justify-center py-2">
-                <div className="relative w-full max-w-64">
-                    {/* กองไพ่โผล่ออกมาข้างหลังตอนที่ไพ่ยังคว่ำอยู่ ให้เห็นว่าสำรับยังหนา */}
+            {/* Card area. min-h-0 lets it shrink on short screens instead of pushing the button off. */}
+            <div className="flex min-h-0 flex-1 items-center justify-center py-1">
+                <div className="relative aspect-5/7 h-full max-h-[24rem] max-w-full">
                     {!flipped && (
                         <DeckStack
                             count={state.deckCount}
@@ -97,69 +87,59 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                         onClick={handleDraw}
                         disabled={!isMyTurn || revealed || busy}
                         aria-label={isMyTurn && !revealed ? 'เปิดไพ่' : 'ไพ่กลางวง'}
-                        className="relative z-10 block w-full transition-transform duration-200 enabled:active:scale-[0.97] disabled:cursor-default"
+                        className="relative z-10 block h-full w-full transition-transform duration-150 enabled:active:scale-[0.98] disabled:cursor-default"
                     >
                         <PlayingCard
                             card={faceCard}
                             flipped={flipped}
                             kingCount={state.kingCount}
-                            nudge={isMyTurn && !revealed}
+                            className="size-full"
                             backHint={
-                                isMyTurn
-                                    ? 'แตะที่ไพ่เพื่อเปิด'
-                                    : `รอ ${currentPlayer?.name ?? ''} เปิดไพ่`
+                                isMyTurn ? 'แตะเพื่อเปิดไพ่' : `รอ ${currentPlayer?.name ?? ''}`
                             }
                         />
                     </button>
                 </div>
             </div>
 
-            {/* ผลของไพ่ที่เปิด */}
-            {revealed && faceCard && rule && (
-                <div className="animate-rise glass rounded-2xl px-4 py-3 text-center text-sm">
-                    <p className="font-bold text-dora-yellow" style={{ fontFamily: 'var(--font-display)' }}>
-                        {currentPlayer?.name} เปิดได้ {faceCard.rank}
-                        {SUIT_SYMBOL[faceCard.suit]}
+            {/* Outcome line: one row, so the layout height never jumps. */}
+            <div className="flex min-h-11 items-center justify-center px-1 text-center">
+                {revealed && faceCard && rule ? (
+                    <p className="animate-fade-up text-[0.8125rem] leading-snug">
+                        <span className="font-medium">
+                            {currentPlayer?.name} · {faceCard.rank}
+                            {SUIT_SYMBOL[faceCard.suit]}
+                        </span>
+                        <span className="text-muted">
+                            {' — '}
+                            {rule.sips > 0
+                                ? `ดื่ม ${rule.sips} อึก`
+                                : targetHint(rule.rank, state.players, state.turnIndex)}
+                        </span>
+                        {buddyHint(state, currentPlayer?.id) && (
+                            <span className="block text-[0.75rem] text-accent">
+                                {buddyHint(state, currentPlayer?.id)}
+                            </span>
+                        )}
                     </p>
-                    <p className="mt-0.5 text-dora-cream/80">
-                        {rule.sips > 0
-                            ? `${currentPlayer?.name} ดื่ม ${rule.sips} อึก 🥃`
-                            : targetHint(rule.rank, state.players, state.turnIndex)}
-                    </p>
-                    {buddyChainHint(state, currentPlayer?.id) && (
-                        <p className="mt-1 text-xs font-semibold text-dora-sky">
-                            🤝 {buddyChainHint(state, currentPlayer?.id)}
-                        </p>
-                    )}
-                </div>
-            )}
-
-            {/* ไพ่ 8 ที่ถือไว้ */}
-            {me.heldCards.length > 0 && (
-                <div className="glass flex items-center gap-3 rounded-2xl px-4 py-3">
-                    <span className="text-2xl">🎫</span>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold">ไพ่ติดตัวของคุณ ({me.heldCards.length})</p>
-                        <p className="text-xs text-dora-cream/60">ใช้เพื่อไปห้องน้ำ หรือยกให้เพื่อนก็ได้</p>
-                    </div>
-                    <button
-                        onClick={() => void run({ type: 'use-card', cardId: me.heldCards[0].id })}
-                        disabled={busy}
-                        className="shrink-0 rounded-xl bg-dora-yellow/20 px-3 py-2 text-sm font-bold text-dora-yellow active:scale-95"
-                    >
-                        ใช้ 1 ใบ
-                    </button>
-                </div>
-            )}
+                ) : (
+                    me.heldCards.length > 0 && (
+                        <button
+                            onClick={() => void run({ type: 'use-card', cardId: me.heldCards[0].id })}
+                            disabled={busy}
+                            className="text-[0.75rem] text-gold"
+                        >
+                            ใช้ไพ่ติดตัว ({me.heldCards.length})
+                        </button>
+                    )
+                )}
+            </div>
 
             {error && (
-                <p className="animate-pop-in rounded-2xl bg-dora-red/20 px-4 py-2.5 text-center text-sm font-semibold text-dora-red">
-                    {error}
-                </p>
+                <p className="pb-1 text-center text-[0.75rem] text-drink">{error}</p>
             )}
 
-            {/* แถบปุ่มล่าง */}
-            <div className="sticky bottom-0 space-y-2 bg-gradient-to-t from-dora-night via-dora-night/92 to-transparent pt-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+            <div className="pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                 {needsBuddy ? (
                     <BuddyPicker
                         state={state}
@@ -175,17 +155,23 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                             loading={busy}
                             className="w-full"
                         >
-                            จบตา — ส่งต่อคนถัดไป →
+                            จบตา ส่งต่อคนถัดไป
                         </Button>
                     ) : (
-                        <Button variant="gold" onClick={handleDraw} loading={busy} silent className="w-full">
-                            🔔 เปิดไพ่
+                        <Button
+                            variant="gold"
+                            onClick={handleDraw}
+                            loading={busy}
+                            silent
+                            className="w-full"
+                        >
+                            เปิดไพ่
                         </Button>
                     )
                 ) : (
-                    <div className="glass rounded-2xl px-5 py-3.5 text-center text-sm font-semibold text-dora-cream/70">
-                        รอ {currentPlayer?.name ?? '—'} เล่นให้จบก่อน
-                    </div>
+                    <p className="py-3.5 text-center text-[0.8125rem] text-muted">
+                        รอ {currentPlayer?.name ?? '—'} เล่นให้จบ
+                    </p>
                 )}
             </div>
         </main>
@@ -205,25 +191,17 @@ function BuddyPicker({
 }) {
     const others = state.players.filter((player) => player.id !== meId)
     return (
-        <div className="animate-rise glass space-y-2 rounded-2xl p-4">
-            <p className="text-center text-sm font-bold text-dora-yellow">
-                🤝 เลือกบัดดี้ของคุณ 1 คน
-            </p>
-            <p className="text-center text-xs text-dora-cream/60">
-                จากนี้ไปถ้าใครในคู่โดนดื่ม อีกคนต้องดื่มด้วย
-            </p>
-            <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="animate-fade-up space-y-2">
+            <p className="text-center text-[0.8125rem] font-medium text-gold">เลือกบัดดี้ 1 คน</p>
+            <div className="grid grid-cols-2 gap-2">
                 {others.map((player) => (
                     <button
                         key={player.id}
                         disabled={busy}
                         onClick={() => onPick(player.id)}
-                        className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-left font-semibold transition active:scale-95 disabled:opacity-50"
+                        className="truncate rounded-field border border-line bg-surface px-3 py-3 text-[0.8125rem] font-medium transition-opacity active:opacity-60 disabled:opacity-40"
                     >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-dora-sky to-dora-blue text-sm font-bold text-dora-night">
-                            {player.name.slice(0, 1)}
-                        </span>
-                        <span className="truncate text-sm">{player.name}</span>
+                        {player.name}
                     </button>
                 ))}
             </div>
@@ -236,21 +214,21 @@ function targetHint(rank: string, players: ViewProps['state']['players'], turnIn
     const rule = CARD_RULES[rank as keyof typeof CARD_RULES]
     if (rank === '9') {
         const left = players[(turnIndex + 1) % players.length]
-        return `${left?.name} (คนทางซ้าย) ดื่ม 1 อึก 🥃`
+        return `${left?.name} (ทางซ้าย) ดื่ม 1 อึก`
     }
     if (rank === '10') {
         const right = players[(turnIndex - 1 + players.length) % players.length]
-        return `${right?.name} (คนทางขวา) ดื่ม 1 อึก 🥃`
+        return `${right?.name} (ทางขวา) ดื่ม 1 อึก`
     }
-    return rule.detail
+    return rule.title
 }
 
-function buddyChainHint(state: ViewProps['state'], playerId?: string) {
+function buddyHint(state: ViewProps['state'], playerId?: string) {
     if (!playerId) return null
     const player = state.players.find((item) => item.id === playerId)
     if (!player?.buddyId) return null
     const rule = state.currentCard ? CARD_RULES[state.currentCard.rank] : null
     if (!rule || rule.sips === 0) return null
     const buddy = state.players.find((item) => item.id === player.buddyId)
-    return buddy ? `${buddy.name} เป็นบัดดี้ ต้องดื่มด้วย!` : null
+    return buddy ? `${buddy.name} เป็นบัดดี้ ต้องดื่มด้วย` : null
 }

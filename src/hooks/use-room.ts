@@ -22,6 +22,13 @@ const FAILURES_BEFORE_FATAL = 5
 /** Back-off ceiling, so a broken room cannot be polled at full speed forever. */
 const MAX_BACKOFF_MS = 8_000
 
+export interface UseRoomOptions {
+    /** Room state rendered on the server, so the first paint is already correct. */
+    initialState?: RoomState | null
+    /** The server already established that this room does not exist. */
+    initialMissing?: boolean
+}
+
 interface PollResponse {
     state?: RoomState
     unchanged?: boolean
@@ -42,14 +49,18 @@ interface PollResponse {
  * that can never load (deleted, or a server-side bug) is requested forever, a
  * few times a second, from every player's phone.
  */
-export function useRoom(code: string) {
-    const [state, setState] = useState<RoomState | null>(null)
-    const [connection, setConnection] = useState<Connection>('connecting')
+export function useRoom(code: string, options: UseRoomOptions = {}) {
+    const { initialState = null, initialMissing = false } = options
+
+    const [state, setState] = useState<RoomState | null>(initialState)
+    const [connection, setConnection] = useState<Connection>(initialState ? 'live' : 'connecting')
     const [error, setError] = useState<string | null>(null)
     /** Set when we have stopped polling for good; holds the reason to show. */
-    const [fatal, setFatal] = useState<string | null>(null)
+    const [fatal, setFatal] = useState<string | null>(
+        initialMissing ? 'ไม่พบห้องนี้ อาจปิดไปแล้วหรือรหัสผิด' : null
+    )
 
-    const versionRef = useRef(0)
+    const versionRef = useRef(initialState?.version ?? 0)
     const failuresRef = useRef(0)
     /** Lets effects trigger the newest poll without depending on it. */
     const pollRef = useRef<() => void>(() => {})
@@ -68,7 +79,7 @@ export function useRoom(code: string) {
     }, [])
 
     useEffect(() => {
-        if (!code) return
+        if (!code || initialMissing) return
         let disposed = false
         let stopped = false
         let timer: ReturnType<typeof setTimeout> | null = null
@@ -165,7 +176,7 @@ export function useRoom(code: string) {
             window.removeEventListener('online', onWake)
             if (timer) clearTimeout(timer)
         }
-    }, [code, applyState])
+    }, [code, applyState, initialMissing])
 
     const act = useCallback(
         async (playerId: string, action: GameAction) => {

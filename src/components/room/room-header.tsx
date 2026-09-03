@@ -21,25 +21,27 @@ export function RoomHeader({ code, connection, right }: Props) {
         setSoundEnabled(!sound)
     }
 
+    const dot = {
+        live: { color: 'bg-emerald-400', label: 'เชื่อมต่อแล้ว' },
+        connecting: { color: 'bg-gold', label: 'กำลังเชื่อมต่อ' },
+        lost: { color: 'bg-drink', label: 'หลุดการเชื่อมต่อ' },
+    }[connection]
+
     return (
         <>
-            <header className="flex items-center justify-between gap-2 pt-3">
+            <header className="flex items-center justify-between gap-2 py-3">
                 <div className="flex items-center gap-2">
-                    <span
-                        className="rounded-xl bg-white/10 px-3 py-1.5 text-lg font-bold tracking-[0.2em] text-dora-yellow"
-                        style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                        {code}
-                    </span>
-                    <ConnectionDot connection={connection} />
+                    <span className="text-[0.9375rem] font-semibold tracking-[0.16em]">{code}</span>
+                    <span title={dot.label} className={`size-1.5 rounded-full ${dot.color}`} />
+                    <span className="sr-only">{dot.label}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     {right}
                     <IconButton label={sound ? 'ปิดเสียง' : 'เปิดเสียง'} onClick={toggleSound}>
                         {sound ? '🔊' : '🔇'}
                     </IconButton>
                     <IconButton label="กฎการเล่น" onClick={() => setRulesOpen(true)}>
-                        ❓
+                        ?
                     </IconButton>
                 </div>
             </header>
@@ -61,24 +63,9 @@ function IconButton({
         <button
             aria-label={label}
             onClick={onClick}
-            className="glass flex size-10 items-center justify-center rounded-xl text-lg transition active:scale-90"
+            className="flex size-9 items-center justify-center rounded-full border border-line text-[0.8125rem] text-muted transition-opacity active:opacity-60"
         >
             {children}
         </button>
-    )
-}
-
-function ConnectionDot({ connection }: { connection: Props['connection'] }) {
-    const map = {
-        live: { color: 'bg-emerald-400', label: 'เชื่อมต่อแล้ว' },
-        connecting: { color: 'bg-dora-yellow animate-pulse', label: 'กำลังเชื่อมต่อ' },
-        lost: { color: 'bg-dora-red animate-pulse', label: 'หลุดการเชื่อมต่อ' },
-    }[connection]
-
-    return (
-        <span title={map.label} className="flex items-center gap-1.5">
-            <span className={`size-2 rounded-full ${map.color}`} />
-            <span className="sr-only">{map.label}</span>
-        </span>
     )
 }

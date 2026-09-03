@@ -20,7 +20,7 @@ export function PlayerStrip({ players, turnIndex, meId }: Props) {
     const nameOf = (id: string | null) => players.find((player) => player.id === id)?.name
 
     return (
-        <ul className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+        <ul className="no-scrollbar -mx-4.5 flex gap-1.5 overflow-x-auto px-4.5">
             {players.map((player, index) => {
                 const isTurn = index === turnIndex
                 const buddyName = nameOf(player.buddyId)
@@ -28,33 +28,31 @@ export function PlayerStrip({ players, turnIndex, meId }: Props) {
                     <li
                         key={player.id}
                         ref={isTurn ? activeRef : null}
-                        className={`flex w-20 shrink-0 flex-col items-center gap-1 rounded-2xl px-2 py-2.5 transition-all duration-300 ${
+                        className={`flex w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-field border px-1.5 py-2 transition-colors ${
                             isTurn
-                                ? 'animate-turn-glow scale-105 bg-dora-yellow/20 ring-2 ring-dora-yellow'
-                                : 'glass opacity-70'
+                                ? 'animate-turn border-gold bg-gold/10'
+                                : 'border-line text-muted'
                         }`}
                     >
                         <span
-                            className={`relative flex size-11 items-center justify-center rounded-full text-lg font-bold ${
-                                isTurn
-                                    ? 'bg-gradient-to-b from-dora-yellow to-[#f0ab13] text-[#4a2d00]'
-                                    : 'bg-gradient-to-b from-dora-sky to-dora-blue text-dora-night'
+                            className={`relative flex size-7 items-center justify-center rounded-full text-[0.75rem] font-semibold ${
+                                isTurn ? 'bg-gold text-[#241a02]' : 'border border-line text-accent'
                             }`}
                         >
                             {player.name.slice(0, 1)}
                             {player.heldCards.length > 0 && (
-                                <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full bg-dora-night text-[10px] font-bold text-dora-yellow ring-1 ring-dora-yellow/60">
+                                <span className="absolute -right-1.5 -bottom-1 flex size-4 items-center justify-center rounded-full bg-ink text-[0.5625rem] font-semibold text-gold ring-1 ring-gold/50">
                                     {player.heldCards.length}
                                 </span>
                             )}
                         </span>
 
-                        <span className="w-full truncate text-center text-[11px] font-bold">
+                        <span className="w-full truncate text-center text-[0.6875rem] font-medium">
                             {player.name}
                         </span>
 
-                        <div className="flex h-4 items-center gap-0.5 text-[10px] leading-none">
-                            {player.id === meId && <span className="text-dora-sky">●</span>}
+                        <div className="flex h-3 items-center gap-0.5 text-[0.5625rem] leading-none">
+                            {player.id === meId && <span className="text-accent">●</span>}
                             {player.isHost && <span title="หัวตี้">👑</span>}
                             {player.silenced && <span title="ห้ามพูดด้วย">🤫</span>}
                             {buddyName && <span title={`บัดดี้กับ ${buddyName}`}>🤝</span>}

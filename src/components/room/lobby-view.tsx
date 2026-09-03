@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
-import { BellMark } from '@/components/bell-mark'
-import { Button } from '@/components/ui'
+import { Button, Panel } from '@/components/ui'
 import { playTap } from '@/lib/feedback'
 
 export function LobbyView({ state, me, connection, error, setError, act, origin }: ViewProps) {
@@ -13,28 +12,8 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
 
     // `origin` comes from request headers server-side, so the link is correct in the first HTML.
     const inviteUrl = `${origin}/room/${state.code}`
-
-    const full = state.players.length >= state.maxPlayers
+    const emptySeats = Math.max(0, state.maxPlayers - state.players.length)
     const canStart = state.players.length >= 2
-
-    const handleShare = async () => {
-        playTap()
-        const shareData = {
-            title: 'เกมส์โดรามอน 🔔',
-            text: `มาเล่นเกมส์โดรามอนกัน! รหัสวง ${state.code}`,
-            url: inviteUrl,
-        }
-        // Most phones get the native share sheet; without it, fall back to copying.
-        if (typeof navigator.share === 'function') {
-            try {
-                await navigator.share(shareData)
-                return
-            } catch {
-                // The user dismissed the share sheet: fall through to copying.
-            }
-        }
-        await handleCopy()
-    }
 
     const handleCopy = async () => {
         try {
@@ -46,6 +25,24 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
         }
     }
 
+    const handleShare = async () => {
+        playTap()
+        // Most phones get the native share sheet; without it, fall back to copying.
+        if (typeof navigator.share === 'function') {
+            try {
+                await navigator.share({
+                    title: 'เกมส์โดรามอน',
+                    text: `มาเล่นเกมส์โดรามอนกัน! รหัสวง ${state.code}`,
+                    url: inviteUrl,
+                })
+                return
+            } catch {
+                // The user dismissed the share sheet: fall through to copying.
+            }
+        }
+        await handleCopy()
+    }
+
     const handleStart = async () => {
         setStarting(true)
         const ok = await act(me.id, { type: 'start' })
@@ -53,96 +50,79 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
     }
 
     return (
-        <main className="app-shell flex min-h-dvh flex-col gap-5 pb-8">
+        <main className="app-shell flex min-h-dvh flex-col pb-4">
             <RoomHeader code={state.code} connection={connection} />
 
-            <section className="animate-rise flex flex-col items-center gap-2 text-center">
-                <BellMark className="size-16" animated />
-                <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-                    รอเพื่อนเข้าวง
-                </h1>
-                <p className="text-sm text-dora-cream/70">
-                    หัวตี้กดเริ่มได้เมื่อมีอย่างน้อย 2 คน — เกมจะสุ่มคนเริ่มให้เอง
-                </p>
-            </section>
-
-            {/* ลิงก์เชิญเพื่อน */}
-            <section className="glass animate-rise space-y-3 rounded-3xl p-5" style={{ animationDelay: '60ms' }}>
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-dora-cream/80">ลิงก์เชิญเพื่อน</p>
-                    <span className="text-xs text-dora-cream/50">แชร์ให้ทุกคนในวง</span>
-                </div>
-                <p className="no-scrollbar overflow-x-auto rounded-2xl bg-black/25 px-4 py-3 font-mono text-xs whitespace-nowrap text-dora-sky select-all">
-                    {inviteUrl}
-                </p>
-                <div className="flex gap-2">
-                    <Button variant="primary" onClick={handleShare} silent className="min-w-0 flex-1">
-                        📤 แชร์ลิงก์
-                    </Button>
-                    <Button variant="ghost" onClick={handleCopy} className="shrink-0 px-5">
-                        {copied ? '✓ คัดลอกแล้ว' : 'คัดลอก'}
-                    </Button>
-                </div>
-                <p className="text-center text-xs text-dora-cream/50">
-                    หรือให้เพื่อนกรอกรหัส{' '}
-                    <span className="font-bold tracking-widest text-dora-yellow">{state.code}</span> ที่หน้าแรก
-                </p>
-            </section>
-
-            {/* สมาชิก */}
-            <section className="animate-rise space-y-3" style={{ animationDelay: '120ms' }}>
-                <div className="flex items-center justify-between px-1">
-                    <p className="font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-                        สมาชิกในวง
+            <div className="flex-1 space-y-4 pt-2">
+                <header className="animate-fade-up space-y-1">
+                    <h1 className="text-xl font-semibold">รอเพื่อนเข้าวง</h1>
+                    <p className="text-[0.8125rem] text-muted">
+                        หัวตี้กดเริ่มได้เมื่อมีอย่างน้อย 2 คน เกมจะสุ่มคนเริ่มให้เอง
                     </p>
-                    <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-bold ${full ? 'bg-emerald-400/20 text-emerald-300' : 'bg-white/10 text-dora-cream/70'}`}
-                    >
-                        {state.players.length}/{state.maxPlayers} คน
-                    </span>
-                </div>
+                </header>
 
-                <ul className="space-y-2">
-                    {state.players.map((player, index) => (
-                        <li
-                            key={player.id}
-                            className="glass animate-pop-in flex items-center gap-3 rounded-2xl px-4 py-3"
-                            style={{ animationDelay: `${index * 40}ms` }}
-                        >
-                            <span className="flex size-10 items-center justify-center rounded-full bg-gradient-to-b from-dora-sky to-dora-blue text-lg font-bold text-dora-night">
-                                {player.name.slice(0, 1)}
-                            </span>
-                            <span className="flex-1 truncate font-semibold">{player.name}</span>
-                            {player.isHost && (
-                                <span className="rounded-full bg-dora-yellow/20 px-2.5 py-1 text-xs font-bold text-dora-yellow">
-                                    👑 หัวตี้
+                <Panel className="animate-fade-up space-y-3">
+                    <p className="label">ลิงก์เชิญเพื่อน</p>
+                    <p className="no-scrollbar overflow-x-auto rounded-field border border-line bg-ink px-3 py-2.5 font-mono text-[0.6875rem] whitespace-nowrap text-accent select-all">
+                        {inviteUrl}
+                    </p>
+                    <div className="flex gap-2">
+                        <Button variant="primary" onClick={handleShare} silent className="min-w-0 flex-1">
+                            แชร์ลิงก์
+                        </Button>
+                        <Button variant="ghost" onClick={handleCopy} className="shrink-0">
+                            {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
+                        </Button>
+                    </div>
+                    <p className="text-center text-[0.75rem] text-muted">
+                        หรือให้เพื่อนกรอกรหัส{' '}
+                        <span className="font-semibold tracking-[0.16em] text-text">{state.code}</span>
+                    </p>
+                </Panel>
+
+                <section className="animate-fade-up space-y-2">
+                    <div className="flex items-baseline justify-between">
+                        <p className="label">สมาชิกในวง</p>
+                        <span className="text-[0.75rem] text-muted">
+                            {state.players.length}/{state.maxPlayers} คน
+                        </span>
+                    </div>
+
+                    <ul className="panel divide-y divide-line rounded-panel">
+                        {state.players.map((player) => (
+                            <li key={player.id} className="flex items-center gap-3 px-3.5 py-3">
+                                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-line text-[0.8125rem] font-semibold text-accent">
+                                    {player.name.slice(0, 1)}
                                 </span>
-                            )}
-                            {player.id === me.id && (
-                                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold">คุณ</span>
-                            )}
-                        </li>
-                    ))}
-
-                    {Array.from({ length: Math.max(0, state.maxPlayers - state.players.length) }).map(
-                        (_, index) => (
+                                <span className="flex-1 truncate text-[0.9375rem] font-medium">
+                                    {player.name}
+                                </span>
+                                {player.isHost && (
+                                    <span className="text-[0.6875rem] text-gold">หัวตี้</span>
+                                )}
+                                {player.id === me.id && (
+                                    <span className="text-[0.6875rem] text-muted">คุณ</span>
+                                )}
+                            </li>
+                        ))}
+                        {Array.from({ length: emptySeats }).map((_, index) => (
                             <li
                                 key={`empty-${index}`}
-                                className="flex items-center gap-3 rounded-2xl border border-dashed border-white/15 px-4 py-3 text-dora-cream/35"
+                                className="flex items-center gap-3 px-3.5 py-3 text-muted/50"
                             >
-                                <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-white/20">
-                                    ?
+                                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-line text-[0.8125rem]">
+                                    ·
                                 </span>
-                                <span className="text-sm">รอเพื่อน...</span>
+                                <span className="text-[0.8125rem]">รอเพื่อน...</span>
                             </li>
-                        )
-                    )}
-                </ul>
-            </section>
+                        ))}
+                    </ul>
+                </section>
 
-            {error && <p className="text-center text-sm font-semibold text-dora-red">{error}</p>}
+                {error && <p className="text-center text-[0.8125rem] text-drink">{error}</p>}
+            </div>
 
-            <div className="sticky bottom-0 mt-auto space-y-2 bg-gradient-to-t from-dora-night via-dora-night/90 to-transparent pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="sticky bottom-0 mt-4 bg-ink pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                 {me.isHost ? (
                     <Button
                         variant="gold"
@@ -152,15 +132,12 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
                         silent
                         className="w-full"
                     >
-                        {canStart ? '🎲 เริ่มเกม — สุ่มคนเริ่ม' : 'ต้องมีอย่างน้อย 2 คน'}
+                        {canStart ? 'เริ่มเกม' : 'ต้องมีอย่างน้อย 2 คน'}
                     </Button>
                 ) : (
-                    <div className="glass animate-nudge rounded-2xl px-5 py-4 text-center">
-                        <p className="font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-                            รอหัวตี้กดเริ่มเกม...
-                        </p>
-                        <p className="text-xs text-dora-cream/60">ไม่ต้องรีเฟรช เดี๋ยวเด้งเข้าเกมเอง</p>
-                    </div>
+                    <p className="py-3 text-center text-[0.8125rem] text-muted">
+                        รอหัวตี้กดเริ่มเกม ไม่ต้องรีเฟรช
+                    </p>
                 )}
             </div>
         </main>
