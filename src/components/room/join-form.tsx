@@ -50,8 +50,8 @@ export function JoinForm({ code, state, onJoined }: Props) {
         <main className="app-shell flex min-h-dvh flex-col justify-center gap-5 py-10">
             <header className="animate-fade-up space-y-1 text-center">
                 <p className="label">เข้าร่วมวง</p>
-                <h1 className="text-2xl font-semibold tracking-[0.16em]">{state.code}</h1>
-                <p className="text-[0.8125rem] text-muted">
+                <h1 className="text-[1.625rem] font-semibold tracking-[0.16em]">{state.code}</h1>
+                <p className="text-[0.9375rem] text-muted">
                     {state.players.length}/{state.maxPlayers} คนในวง
                 </p>
             </header>
@@ -62,7 +62,7 @@ export function JoinForm({ code, state, onJoined }: Props) {
                         {state.players.map((player) => (
                             <span
                                 key={player.id}
-                                className="rounded-full border border-line px-2.5 py-1 text-[0.75rem] text-muted"
+                                className="rounded-full border border-line px-2.5 py-1 text-[0.875rem] text-muted"
                             >
                                 {player.isHost && '👑 '}
                                 {player.name}
@@ -76,7 +76,7 @@ export function JoinForm({ code, state, onJoined }: Props) {
                         <p className="font-semibold text-drink">
                             {full ? 'วงนี้เต็มแล้ว' : 'วงนี้เริ่มเล่นไปแล้ว'}
                         </p>
-                        <p className="text-[0.8125rem] text-muted">
+                        <p className="text-[0.9375rem] text-muted">
                             บอกหัวตี้ให้เปิดวงใหม่ หรือสร้างวงของคุณเองก็ได้
                         </p>
                         <Button variant="ghost" onClick={() => router.push('/')} className="w-full">
@@ -102,7 +102,7 @@ export function JoinForm({ code, state, onJoined }: Props) {
                         >
                             เข้าร่วมวง
                         </Button>
-                        {error && <p className="text-center text-[0.8125rem] text-drink">{error}</p>}
+                        {error && <p className="text-center text-[0.9375rem] text-drink">{error}</p>}
                     </>
                 )}
             </Panel>

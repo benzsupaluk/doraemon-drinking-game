@@ -56,7 +56,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                 code={state.code}
                 connection={connection}
                 right={
-                    <span className="mr-1 text-[0.75rem] text-muted">
+                    <span className="mr-1 text-[0.875rem] text-muted">
                         เหลือ {state.deckCount}
                     </span>
                 }
@@ -64,7 +64,10 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
 
             <PlayerStrip players={state.players} turnIndex={state.turnIndex} meId={me.id} />
 
-            <p className="py-2.5 text-center text-[0.8125rem]">
+            <p
+                key={currentPlayer?.id ?? 'none'}
+                className="animate-pop py-2.5 text-center text-[1rem]"
+            >
                 {isMyTurn ? (
                     <span className="font-semibold text-gold">ตาของคุณ</span>
                 ) : (
@@ -94,6 +97,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                             flipped={flipped}
                             kingCount={state.kingCount}
                             className="size-full"
+                            ringing={isMyTurn && !revealed}
                             backHint={
                                 isMyTurn ? 'แตะเพื่อเปิดไพ่' : `รอ ${currentPlayer?.name ?? ''}`
                             }
@@ -105,7 +109,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
             {/* Outcome line: one row, so the layout height never jumps. */}
             <div className="flex min-h-11 items-center justify-center px-1 text-center">
                 {revealed && faceCard && rule ? (
-                    <p className="animate-fade-up text-[0.8125rem] leading-snug">
+                    <p key={faceCard.id} className="animate-pop text-[0.9375rem] leading-snug">
                         <span className="font-medium">
                             {currentPlayer?.name} · {faceCard.rank}
                             {SUIT_SYMBOL[faceCard.suit]}
@@ -117,7 +121,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                                 : targetHint(rule.rank, state.players, state.turnIndex)}
                         </span>
                         {buddyHint(state, currentPlayer?.id) && (
-                            <span className="block text-[0.75rem] text-accent">
+                            <span className="block text-[0.875rem] text-accent">
                                 {buddyHint(state, currentPlayer?.id)}
                             </span>
                         )}
@@ -127,7 +131,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                         <button
                             onClick={() => void run({ type: 'use-card', cardId: me.heldCards[0].id })}
                             disabled={busy}
-                            className="text-[0.75rem] text-gold"
+                            className="text-[0.875rem] text-gold"
                         >
                             ใช้ไพ่ติดตัว ({me.heldCards.length})
                         </button>
@@ -136,7 +140,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
             </div>
 
             {error && (
-                <p className="pb-1 text-center text-[0.75rem] text-drink">{error}</p>
+                <p className="pb-1 text-center text-[0.875rem] text-drink">{error}</p>
             )}
 
             <div className="pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -169,7 +173,7 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                         </Button>
                     )
                 ) : (
-                    <p className="py-3.5 text-center text-[0.8125rem] text-muted">
+                    <p className="py-3.5 text-center text-[0.9375rem] text-muted">
                         รอ {currentPlayer?.name ?? '—'} เล่นให้จบ
                     </p>
                 )}
@@ -192,14 +196,14 @@ function BuddyPicker({
     const others = state.players.filter((player) => player.id !== meId)
     return (
         <div className="animate-fade-up space-y-2">
-            <p className="text-center text-[0.8125rem] font-medium text-gold">เลือกบัดดี้ 1 คน</p>
+            <p className="text-center text-[0.9375rem] font-medium text-gold">เลือกบัดดี้ 1 คน</p>
             <div className="grid grid-cols-2 gap-2">
                 {others.map((player) => (
                     <button
                         key={player.id}
                         disabled={busy}
                         onClick={() => onPick(player.id)}
-                        className="truncate rounded-field border border-line bg-surface px-3 py-3 text-[0.8125rem] font-medium transition-opacity active:opacity-60 disabled:opacity-40"
+                        className="truncate rounded-field border border-line bg-surface px-3 py-3 text-[0.9375rem] font-medium transition-opacity active:opacity-60 disabled:opacity-40"
                     >
                         {player.name}
                     </button>

@@ -57,13 +57,13 @@ export default function HomePage() {
     }
 
     return (
-        <main className="app-shell flex min-h-dvh flex-col justify-center gap-6 py-10">
+        <main className="app-shell stagger flex min-h-dvh flex-col justify-center gap-5 py-8">
             <header className="animate-fade-up flex flex-col items-center gap-2.5 text-center">
-                <BellMark className="size-10 text-accent" />
-                <h1 className="text-[1.75rem] leading-tight font-semibold xs:text-[2rem]">
+                <BellMark className="size-12 text-accent" swing />
+                <h1 className="text-[2rem] leading-tight font-semibold xs:text-[2.25rem]">
                     เกมส์โดรามอน
                 </h1>
-                <p className="max-w-[19rem] text-[0.8125rem] leading-relaxed text-muted">
+                <p className="max-w-[19rem] text-[0.9375rem] leading-relaxed text-muted">
                     เกมไพ่วงเหล้า เปิดไพ่ไปเรื่อยๆ ใครได้ไพ่อะไรก็ทำตามนั้น
                     เล่นพร้อมกันทั้งวงจากมือถือของแต่ละคน
                 </p>
@@ -89,8 +89,8 @@ export default function HomePage() {
                             disabled={maxPlayers <= MIN_PLAYERS}
                         />
                         <div className="flex-1 rounded-field border border-line bg-ink py-2.5 text-center">
-                            <span className="text-xl font-semibold">{maxPlayers}</span>
-                            <span className="ml-1 text-[0.8125rem] text-muted">คน</span>
+                            <span className="text-[1.375rem] font-semibold">{maxPlayers}</span>
+                            <span className="ml-1 text-[0.9375rem] text-muted">คน</span>
                         </div>
                         <Stepper
                             label="เพิ่ม"
@@ -104,7 +104,7 @@ export default function HomePage() {
                 <Button variant="primary" loading={loading} onClick={handleCreate} silent className="w-full">
                     สร้างวงใหม่
                 </Button>
-                {error && <p className="text-center text-[0.8125rem] text-drink">{error}</p>}
+                {error && <p className="text-center text-[0.9375rem] text-drink">{error}</p>}
             </Panel>
 
             <section className="animate-fade-up space-y-2.5">
@@ -123,7 +123,7 @@ export default function HomePage() {
                         autoCapitalize="characters"
                         autoComplete="off"
                         aria-label="รหัสวง"
-                        className="min-w-0 flex-1 rounded-field border border-line bg-ink px-3.5 py-3 text-center text-lg font-semibold tracking-[0.3em] uppercase placeholder:text-muted/40 focus:border-accent focus:outline-none"
+                        className="min-w-0 flex-1 rounded-field border border-line bg-ink px-3.5 py-3 text-center text-[1.1875rem] font-semibold tracking-[0.3em] uppercase placeholder:text-muted/40 focus:border-accent focus:outline-none"
                     />
                     <Button variant="ghost" onClick={handleJoin} className="shrink-0">
                         เข้าวง
@@ -133,7 +133,7 @@ export default function HomePage() {
 
             <button
                 onClick={() => setRulesOpen(true)}
-                className="animate-fade-up mx-auto text-[0.8125rem] font-medium text-accent"
+                className="animate-fade-up mx-auto text-[0.9375rem] font-medium text-accent"
             >
                 อ่านกฎทั้งหมด
             </button>
@@ -159,7 +159,7 @@ function Stepper({
             aria-label={label}
             onClick={onClick}
             disabled={disabled}
-            className="flex size-12 shrink-0 items-center justify-center rounded-field border border-line bg-ink text-xl font-medium transition-opacity active:opacity-60 disabled:opacity-30"
+            className="flex size-12 shrink-0 items-center justify-center rounded-field border border-line bg-ink text-[1.375rem] font-medium transition-opacity active:opacity-60 disabled:opacity-30"
         >
             {symbol}
         </button>

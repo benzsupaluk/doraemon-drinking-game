@@ -31,7 +31,7 @@ export function RoomHeader({ code, connection, right }: Props) {
         <>
             <header className="flex items-center justify-between gap-2 py-3">
                 <div className="flex items-center gap-2">
-                    <span className="text-[0.9375rem] font-semibold tracking-[0.16em]">{code}</span>
+                    <span className="text-[1.0625rem] font-semibold tracking-[0.16em]">{code}</span>
                     <span title={dot.label} className={`size-1.5 rounded-full ${dot.color}`} />
                     <span className="sr-only">{dot.label}</span>
                 </div>
@@ -63,7 +63,7 @@ function IconButton({
         <button
             aria-label={label}
             onClick={onClick}
-            className="flex size-9 items-center justify-center rounded-full border border-line text-[0.8125rem] text-muted transition-opacity active:opacity-60"
+            className="flex size-9 items-center justify-center rounded-full border border-line text-[0.9375rem] text-muted transition-opacity active:opacity-60"
         >
             {children}
         </button>

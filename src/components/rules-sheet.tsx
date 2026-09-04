@@ -46,10 +46,10 @@ export function RulesSheet({ open, onClose }: { open: boolean; onClose: () => vo
                             <li key={rule.title} className="flex gap-3">
                                 <span className="text-base">{rule.emoji}</span>
                                 <div className="min-w-0">
-                                    <p className="text-[0.875rem] font-semibold text-gold">
+                                    <p className="text-[1rem] font-semibold text-gold">
                                         {rule.title}
                                     </p>
-                                    <p className="text-[0.8125rem] leading-relaxed text-muted">
+                                    <p className="text-[0.9375rem] leading-relaxed text-muted">
                                         {rule.detail}
                                     </p>
                                 </div>
@@ -63,12 +63,12 @@ export function RulesSheet({ open, onClose }: { open: boolean; onClose: () => vo
                             const rule = CARD_RULES[rank]
                             return (
                                 <li key={rank} className="flex gap-3 py-2.5">
-                                    <span className="w-7 shrink-0 text-center text-[0.9375rem] font-semibold text-accent">
+                                    <span className="w-7 shrink-0 text-center text-[1.0625rem] font-semibold text-accent">
                                         {rank}
                                     </span>
                                     <div className="min-w-0">
-                                        <p className="text-[0.875rem] font-medium">{rule.title}</p>
-                                        <p className="text-[0.8125rem] leading-relaxed text-muted">
+                                        <p className="text-[1rem] font-medium">{rule.title}</p>
+                                        <p className="text-[0.9375rem] leading-relaxed text-muted">
                                             {rule.detail}
                                         </p>
                                     </div>

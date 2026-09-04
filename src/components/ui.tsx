@@ -43,7 +43,7 @@ export function Button({
                 if (!silent) playTap()
                 onClick?.(event)
             }}
-            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-field px-5 text-[0.9375rem] font-semibold transition-opacity active:opacity-70 disabled:pointer-events-none disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
+            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-field px-5 text-[1.0625rem] font-semibold transition-all duration-150 active:scale-[0.98] active:opacity-80 disabled:pointer-events-none disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
         >
             {loading ? (
                 <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

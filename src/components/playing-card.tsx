@@ -1,19 +1,23 @@
 'use client'
 
 import { BellMark } from './bell-mark'
+import { CardPips } from './card-pips'
 import { CARD_RULES, KING_STEPS, SUIT_SYMBOL } from '@/lib/rules'
 import type { Card } from '@/lib/types'
 
-/** One accent line per rule kind. Kept faint: the rule text does the work. */
+/** One accent per rule kind, used for the rule heading only. */
 const TONE = {
-    drink: { rule: '#e05252', label: 'ดื่ม' },
-    game: { rule: '#3f8f6b', label: 'เล่นเกม' },
-    target: { rule: '#3a72b8', label: 'สั่งคนอื่น' },
-    special: { rule: '#b8862f', label: 'พิเศษ' },
+    drink: '#c0392b',
+    game: '#2f7d5b',
+    target: '#2f66a8',
+    special: '#a3761d',
 } as const
 
-function isRed(card: Card) {
-    return card.suit === 'hearts' || card.suit === 'diamonds'
+const RED = '#c0392b'
+const BLACK = '#16191f'
+
+function inkFor(card: Card) {
+    return card.suit === 'hearts' || card.suit === 'diamonds' ? RED : BLACK
 }
 
 interface Props {
@@ -23,75 +27,91 @@ interface Props {
     kingCount?: number
     /** Text shown on the card back, e.g. "tap the card to flip it". */
     backHint?: string
+    /** Ring the bell on the card back — used when it is your turn. */
+    ringing?: boolean
     className?: string
 }
 
-export function PlayingCard({ card, flipped, kingCount = 0, backHint, className = '' }: Props) {
+export function PlayingCard({
+    card,
+    flipped,
+    kingCount = 0,
+    backHint,
+    ringing = false,
+    className = '',
+}: Props) {
     const rule = card ? CARD_RULES[card.rank] : null
-    const tone = rule ? TONE[rule.tone] : TONE.special
-    const kingStep = card?.rank === 'K' ? KING_STEPS[Math.min(Math.max(kingCount, 1), 4) - 1] : null
+    const kingIndex = Math.min(Math.max(kingCount, 1), 4)
+    const kingStep = card?.rank === 'K' ? KING_STEPS[kingIndex - 1] : null
+    const ink = card ? inkFor(card) : BLACK
 
     return (
         <div className={`card-stage ${className}`}>
             <div className={`card-3d size-full ${flipped ? 'is-flipped' : ''}`}>
-                {/* Back */}
-                <div className="card-face card-back-art flex flex-col items-center justify-center gap-3 px-6">
-                    <BellMark className="size-9 text-accent/70" />
-                    {backHint && (
-                        <p className="text-center text-[0.8125rem] font-medium text-text/70">
-                            {backHint}
-                        </p>
-                    )}
+                {/* Back — a bordered panel, like the back of a real deck. */}
+                <div className="card-face card-back-art flex items-center justify-center p-2.5">
+                    <div className="flex size-full flex-col items-center justify-center gap-3 rounded-[0.6rem] border border-white/12 px-5">
+                        <BellMark className="size-10 text-accent/80" swing={!ringing} ring={ringing} />
+                        {backHint && (
+                            <p className="text-center text-[0.9375rem] font-medium text-text/75">
+                                {backHint}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Face */}
-                <div className="card-face card-face-back flex flex-col bg-card text-card-ink">
+                <div className="card-face card-face-back bg-card text-card-ink">
                     {card && rule && (
-                        <>
-                            <div className="flex items-start justify-between px-4 pt-3.5">
-                                <span
-                                    className="text-lg leading-none font-semibold"
-                                    style={{ color: isRed(card) ? '#c0392b' : '#1a1f26' }}
-                                >
-                                    {card.rank}
-                                    <span className="ml-0.5 text-[0.9em]">
-                                        {SUIT_SYMBOL[card.suit]}
-                                    </span>
-                                </span>
-                                <span
-                                    className="text-[0.625rem] font-semibold tracking-[0.08em]"
-                                    style={{ color: tone.rule }}
-                                >
-                                    {tone.label}
-                                </span>
+                        <div className="relative flex size-full flex-col">
+                            <CornerIndex card={card} ink={ink} className="top-2 left-2.5" />
+                            <CornerIndex
+                                card={card}
+                                ink={ink}
+                                className="right-2.5 bottom-2 rotate-180"
+                            />
+
+                            {/*
+                              * Fixed proportions rather than flex, so the pip
+                              * field is the same size on every card the way a
+                              * real deck is. Letting it flex meant a long rule
+                              * squashed the pips into each other.
+                              */}
+                            <div className="h-[57%] shrink-0 px-8 pt-7 pb-2">
+                                <CardPips rank={card.rank} suit={card.suit} color={ink} />
                             </div>
 
-                            <div className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 pb-2 text-center">
-                                <span className="text-[2.25rem] leading-none">{rule.emoji}</span>
-                                <h2 className="text-xl leading-snug font-semibold">
-                                    {kingStep ? 'ราชาสั่งได้' : rule.title}
+                            {/* What the card means in this game. */}
+                            <div className="flex flex-1 flex-col justify-center border-t border-card-ink/12 px-8 py-2 text-center">
+                                <h2
+                                    className="text-[1.1875rem] leading-tight font-semibold"
+                                    style={{ color: TONE[rule.tone] }}
+                                >
+                                    {kingStep ? kingStep.title.replace(/^ใบที่ \d+ — /, '') : rule.title}
                                 </h2>
-                                {kingStep && (
-                                    <p
-                                        className="text-[0.75rem] font-semibold"
-                                        style={{ color: tone.rule }}
-                                    >
-                                        {kingStep.title}
-                                    </p>
-                                )}
-                                <p className="text-[0.8125rem] leading-relaxed text-card-ink/60">
-                                    {kingStep ? kingStep.detail : rule.detail}
+                                <p className="mt-1 line-clamp-2 text-[0.875rem] leading-snug text-card-ink/65">
+                                    {kingStep
+                                        ? `ใบที่ ${kingIndex} · ${kingStep.detail}`
+                                        : rule.short}
                                 </p>
                             </div>
-
-                            <div
-                                className="h-1 w-full shrink-0"
-                                style={{ backgroundColor: tone.rule }}
-                            />
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
+        </div>
+    )
+}
+
+/** Rank over suit, tucked into the corner — the classic index block. */
+function CornerIndex({ card, ink, className }: { card: Card; ink: string; className: string }) {
+    return (
+        <div
+            className={`absolute flex flex-col items-center leading-none ${className}`}
+            style={{ color: ink }}
+        >
+            <span className="text-[1.1875rem] font-semibold">{card.rank}</span>
+            <span className="text-[1rem]">{SUIT_SYMBOL[card.suit]}</span>
         </div>
     )
 }
@@ -110,7 +130,7 @@ export function DeckStack({ count, className = '' }: { count: number; className?
             {Array.from({ length: layers }).map((_, index) => (
                 <div
                     key={index}
-                    className="card-back-art absolute inset-0 rounded-card opacity-60"
+                    className="card-back-art absolute inset-0 rounded-card opacity-70 transition-transform duration-300"
                     style={{
                         transform: `translate(${(layers - index) * 3}px, ${(layers - index) * 4}px)`,
                     }}

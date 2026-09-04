@@ -24,31 +24,31 @@ export function FinishedView({ state, me, connection, error, act }: ViewProps) {
         <main className="app-shell flex min-h-dvh flex-col pb-4">
             <RoomHeader code={state.code} connection={connection} />
 
-            <div className="flex-1 space-y-4 pt-2">
-                <header className="animate-fade-up space-y-1">
-                    <h1 className="text-xl font-semibold">จบรอบแล้ว</h1>
-                    <p className="text-[0.8125rem] text-muted">
+            <div className="stagger flex-1 space-y-4 pt-2">
+                <header className="space-y-1">
+                    <h1 className="text-[1.375rem] font-semibold">จบรอบแล้ว</h1>
+                    <p className="text-[0.9375rem] text-muted">
                         {tooFewPlayers
                             ? 'คนในวงเหลือน้อยเกินไป รอเพื่อนกลับมาแล้วเริ่มรอบใหม่ได้'
                             : 'ไพ่หมดสำรับพอดี ดื่มน้ำเปล่าซักแก้วก่อนนะ'}
                     </p>
                 </header>
 
-                <Panel className="animate-fade-up space-y-2.5">
+                <Panel className="space-y-2.5">
                     <p className="label">เปิดไพ่มากที่สุด</p>
                     <ul className="divide-y divide-line">
                         {ranking.map((player, index) => (
                             <li key={player.id} className="flex items-center gap-3 py-2">
-                                <span className="w-4 text-center text-[0.75rem] text-muted">
+                                <span className="w-4 text-center text-[0.875rem] text-muted">
                                     {index + 1}
                                 </span>
-                                <span className="flex-1 truncate text-[0.9375rem] font-medium">
+                                <span className="flex-1 truncate text-[1.0625rem] font-medium">
                                     {player.name}
                                     {player.id === me.id && (
-                                        <span className="ml-1.5 text-[0.6875rem] text-muted">คุณ</span>
+                                        <span className="ml-1.5 text-[0.8125rem] text-muted">คุณ</span>
                                     )}
                                 </span>
-                                <span className="text-[0.8125rem] font-semibold text-gold">
+                                <span className="text-[0.9375rem] font-semibold text-gold">
                                     {player.cardsDrawn} ใบ
                                 </span>
                             </li>
@@ -57,13 +57,13 @@ export function FinishedView({ state, me, connection, error, act }: ViewProps) {
                 </Panel>
 
                 {state.log.length > 0 && (
-                    <section className="animate-fade-up space-y-2">
+                    <section className="space-y-2">
                         <p className="label">ไพ่ท้ายๆ ของรอบนี้</p>
                         <ul className="no-scrollbar max-h-48 divide-y divide-line overflow-y-auto">
                             {state.log.map((entry) => (
                                 <li
                                     key={entry.id}
-                                    className="flex items-center gap-3 py-2 text-[0.8125rem]"
+                                    className="flex items-center gap-3 py-2 text-[0.9375rem]"
                                 >
                                     <span
                                         className={`w-7 shrink-0 text-center font-semibold ${
@@ -83,7 +83,7 @@ export function FinishedView({ state, me, connection, error, act }: ViewProps) {
                     </section>
                 )}
 
-                {error && <p className="text-center text-[0.8125rem] text-drink">{error}</p>}
+                {error && <p className="text-center text-[0.9375rem] text-drink">{error}</p>}
             </div>
 
             <div className="mt-4 space-y-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -92,7 +92,7 @@ export function FinishedView({ state, me, connection, error, act }: ViewProps) {
                         เริ่มรอบใหม่
                     </Button>
                 ) : (
-                    <p className="py-3 text-center text-[0.8125rem] text-muted">
+                    <p className="py-3 text-center text-[0.9375rem] text-muted">
                         รอหัวตี้เริ่มรอบใหม่
                     </p>
                 )}

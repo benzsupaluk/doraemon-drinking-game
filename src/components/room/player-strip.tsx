@@ -28,30 +28,30 @@ export function PlayerStrip({ players, turnIndex, meId }: Props) {
                     <li
                         key={player.id}
                         ref={isTurn ? activeRef : null}
-                        className={`flex w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-field border px-1.5 py-2 transition-colors ${
+                        className={`flex w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-field border px-1.5 py-2 transition-all duration-300 ${
                             isTurn
-                                ? 'animate-turn border-gold bg-gold/10'
+                                ? 'animate-turn scale-[1.03] border-gold bg-gold/10'
                                 : 'border-line text-muted'
                         }`}
                     >
                         <span
-                            className={`relative flex size-7 items-center justify-center rounded-full text-[0.75rem] font-semibold ${
+                            className={`relative flex size-8 items-center justify-center rounded-full text-[0.9375rem] font-semibold transition-colors duration-300 ${
                                 isTurn ? 'bg-gold text-[#241a02]' : 'border border-line text-accent'
                             }`}
                         >
                             {player.name.slice(0, 1)}
                             {player.heldCards.length > 0 && (
-                                <span className="absolute -right-1.5 -bottom-1 flex size-4 items-center justify-center rounded-full bg-ink text-[0.5625rem] font-semibold text-gold ring-1 ring-gold/50">
+                                <span className="absolute -right-1.5 -bottom-1 flex size-4 items-center justify-center rounded-full bg-ink text-[0.625rem] font-semibold text-gold ring-1 ring-gold/50">
                                     {player.heldCards.length}
                                 </span>
                             )}
                         </span>
 
-                        <span className="w-full truncate text-center text-[0.6875rem] font-medium">
+                        <span className="w-full truncate text-center text-[0.8125rem] font-medium">
                             {player.name}
                         </span>
 
-                        <div className="flex h-3 items-center gap-0.5 text-[0.5625rem] leading-none">
+                        <div className="flex h-3 items-center gap-0.5 text-[0.625rem] leading-none">
                             {player.id === meId && <span className="text-accent">●</span>}
                             {player.isHost && <span title="หัวตี้">👑</span>}
                             {player.silenced && <span title="ห้ามพูดด้วย">🤫</span>}

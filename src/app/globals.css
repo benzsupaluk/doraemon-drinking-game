@@ -1,11 +1,11 @@
 @import 'tailwindcss';
 
 /*
- * Minimal theme.
+ * Minimal theme, but not a still one.
  *
- * One typeface, a small palette, hairline borders instead of glass, and only
- * the animations that carry meaning (the card flip, and a pulse on whoever's
- * turn it is). Fewer animated layers also means less for a phone to composite.
+ * One typeface and a small flat palette, with motion kept for the moments that
+ * carry meaning: the bell, the card flip, a screen settling into place, and a
+ * pulse on whoever's turn it is.
  */
 @theme {
     /* iPhone SE is 375px wide; anything roomier can breathe a little. */
@@ -20,23 +20,26 @@
     --color-accent-ink: #0a1220;
     --color-drink: #ff7a7a;
     --color-gold: #e3b341;
-    --color-card: #fbfaf7;
-    --color-card-ink: #1a1f26;
+    --color-card: #fcfbf8;
+    --color-card-ink: #16191f;
 
     --font-sans: var(--font-thai), ui-sans-serif, system-ui, sans-serif;
 
     --radius-field: 0.75rem;
     --radius-panel: 1rem;
-    --radius-card: 1.125rem;
+    --radius-card: 1rem;
 
-    --animate-fade-up: fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-    --animate-turn: turn 2.4s ease-in-out infinite;
+    --animate-fade-up: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    --animate-pop: pop 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    --animate-bell: bell 3.2s ease-in-out infinite;
+    --animate-bell-ring: bell-ring 0.7s ease-in-out infinite;
+    --animate-turn: turn 2.2s ease-in-out infinite;
 }
 
 @keyframes fade-up {
     from {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -44,13 +47,58 @@
     }
 }
 
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Idle sway, with a ring every few seconds. */
+@keyframes bell {
+    0%,
+    62%,
+    100% {
+        transform: rotate(0deg);
+    }
+    70% {
+        transform: rotate(11deg);
+    }
+    78% {
+        transform: rotate(-9deg);
+    }
+    86% {
+        transform: rotate(5deg);
+    }
+    93% {
+        transform: rotate(-2deg);
+    }
+}
+
+/* Urgent version, used while it is your turn. */
+@keyframes bell-ring {
+    0%,
+    100% {
+        transform: rotate(-9deg);
+    }
+    50% {
+        transform: rotate(9deg);
+    }
+}
+
 @keyframes turn {
     0%,
     100% {
-        border-color: color-mix(in srgb, var(--color-gold) 55%, transparent);
+        border-color: color-mix(in srgb, var(--color-gold) 45%, transparent);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-gold) 22%, transparent);
     }
     50% {
-        border-color: color-mix(in srgb, var(--color-gold) 100%, transparent);
+        border-color: var(--color-gold);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-gold) 0%, transparent);
     }
 }
 
@@ -67,8 +115,8 @@
 
     body {
         font-family: var(--font-sans);
-        font-size: 0.9375rem;
-        line-height: 1.55;
+        font-size: 1rem;
+        line-height: 1.6;
         color: var(--color-text);
         background-color: var(--color-ink);
         min-height: 100dvh;
@@ -81,7 +129,7 @@
 
     /* Inputs must be >= 16px or iOS Safari zooms the page on focus. */
     input {
-        font-size: 1rem;
+        font-size: 1.0625rem;
     }
 }
 
@@ -98,10 +146,6 @@
     border: 1px solid var(--color-line);
 }
 
-@utility hairline {
-    border: 1px solid var(--color-line);
-}
-
 @utility no-scrollbar {
     scrollbar-width: none;
     &::-webkit-scrollbar {
@@ -109,24 +153,46 @@
     }
 }
 
-/* Small caps-ish label used above groups and on the card. */
+/* Small label used above groups. */
 @utility label {
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     color: var(--color-muted);
+}
+
+/* Stagger helper: children fade up one after another. */
+@utility stagger {
+    & > * {
+        animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    & > *:nth-child(1) {
+        animation-delay: 0ms;
+    }
+    & > *:nth-child(2) {
+        animation-delay: 45ms;
+    }
+    & > *:nth-child(3) {
+        animation-delay: 90ms;
+    }
+    & > *:nth-child(4) {
+        animation-delay: 135ms;
+    }
+    & > *:nth-child(n + 5) {
+        animation-delay: 180ms;
+    }
 }
 
 /* ---------- 3D card ---------- */
 
 @utility card-stage {
-    perspective: 1200px;
+    perspective: 1400px;
 }
 
 @utility card-3d {
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.55s cubic-bezier(0.3, 0.8, 0.25, 1);
+    transition: transform 0.66s cubic-bezier(0.3, 0.9, 0.25, 1);
 }
 
 @utility card-face {
@@ -146,10 +212,16 @@
     transform: rotateY(180deg);
 }
 
-/* Card back: flat, one tone, no pattern. */
+/* Card back: a flat panel with a woven tint, like the back of a real deck. */
 @utility card-back-art {
-    background: #1d2a3a;
-    border: 1px solid #2b3b50;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.045) 0 6px,
+            transparent 6px 12px
+        ),
+        #1d2a3a;
+    border: 1px solid #33455c;
 }
 
 @media (prefers-reduced-motion: reduce) {

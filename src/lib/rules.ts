@@ -4,8 +4,16 @@ export interface CardRule {
     rank: Rank
     /** Short rule name, used as the card's headline. */
     title: string
-    /** The full rule text. */
+    /** The full rule text, shown in the rules sheet. */
     detail: string
+    /**
+     * A one-or-two-line version for the card face.
+     *
+     * The card has room for the pip field and a couple of lines, so `detail`
+     * gets clipped there — and what gets clipped is usually the penalty, which
+     * is the part players actually need mid-game.
+     */
+    short: string
     emoji: string
     /** Gulps the drawer owes immediately (0 = they do not drink themselves). */
     sips: number
@@ -20,6 +28,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: 'A',
         title: 'ดื่ม 1 อึก',
         detail: 'ยกเลย ไม่ต้องคิดมาก',
+        short: 'ยกเลย ไม่ต้องคิดมาก',
         emoji: '🥃',
         sips: 1,
         tone: 'drink',
@@ -28,6 +37,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '2',
         title: 'ดื่ม 2 อึก',
         detail: 'สองอึกกำลังดี',
+        short: 'สองอึกกำลังดี',
         emoji: '🥃',
         sips: 2,
         tone: 'drink',
@@ -36,6 +46,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '3',
         title: 'ดื่ม 3 อึก',
         detail: 'เริ่มหนักแล้วนะ',
+        short: 'เริ่มหนักแล้วนะ',
         emoji: '🥃',
         sips: 3,
         tone: 'drink',
@@ -44,6 +55,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '4',
         title: 'ดื่ม 4 อึก',
         detail: 'ซวยแล้ว จัดไป 4 อึก',
+        short: 'ซวยแล้ว จัดไป 4 อึก',
         emoji: '🥃',
         sips: 4,
         tone: 'drink',
@@ -52,6 +64,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '5',
         title: 'จับบัดดี้',
         detail: 'เลือกบัดดี้ 1 คน จากนี้ไปถ้าเราหรือบัดดี้โดนดื่มจากอะไรก็แล้วแต่ อีกคนต้องดื่มด้วย',
+        short: 'ถ้าใครในคู่โดนดื่ม อีกคนดื่มด้วย',
         emoji: '🤝',
         sips: 0,
         action: 'buddy',
@@ -61,6 +74,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '6',
         title: 'เกมหมวดหมู่',
         detail: 'คนเปิดตั้งหัวข้อ เช่น "สัตว์" แล้วไล่กันไป หมู หมา กา ไก่ ใครตอบไม่ได้หรือตอบช้า ดื่ม 1 อึก',
+        short: 'ตั้งหัวข้อแล้วไล่กันไป ตอบไม่ได้ 1 อึก',
         emoji: '🐷',
         sips: 0,
         tone: 'game',
@@ -69,6 +83,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '7',
         title: 'เกมเลข 7',
         detail: 'พูดเรียงเลขไปเรื่อยๆ ข้ามเลขที่ลงท้ายด้วย 7 หรือหารด้วย 7 ลงตัว (7 14 17 21 27 28) ผิดที่ใครก็ 1 อึก',
+        short: 'ข้ามเลขที่มี 7 หรือหารด้วย 7 ผิด 1 อึก',
         emoji: '7️⃣',
         sips: 0,
         tone: 'game',
@@ -77,6 +92,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '8',
         title: 'ไพ่ติดตัว',
         detail: 'เก็บไพ่นี้ไว้กับตัว ใช้เองหรือให้เพื่อนเพื่อไปห้องน้ำได้ (เกมนี้ห้ามลุกไปเข้าห้องน้ำ แต่เอาจริงๆ เปลี่ยนเป็นอย่างอื่นก็ดีนะครับ 555)',
+        short: 'เก็บไว้ใช้ไปห้องน้ำ ให้เพื่อนก็ได้',
         emoji: '🎫',
         sips: 0,
         action: 'hold',
@@ -86,6 +102,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '9',
         title: 'คนทางซ้ายดื่ม',
         detail: 'คนที่นั่งทางซ้ายของคนเปิด ดื่ม 1 อึก',
+        short: 'คนทางซ้ายของคนเปิด ดื่ม 1 อึก',
         emoji: '👈',
         sips: 0,
         tone: 'target',
@@ -94,6 +111,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '10',
         title: 'คนทางขวาดื่ม',
         detail: 'คนที่นั่งทางขวาของคนเปิด ดื่ม 1 อึก',
+        short: 'คนทางขวาของคนเปิด ดื่ม 1 อึก',
         emoji: '👉',
         sips: 0,
         tone: 'target',
@@ -102,6 +120,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: 'J',
         title: 'เกมจับคาง',
         detail: 'คนเปิดเอามือจับคาง (หรือจะทำท่าอะไรก็ได้) ทุกคนต้องทำตาม คนสุดท้ายที่ทำตาม ดื่ม 1 อึก',
+        short: 'ทุกคนทำตาม คนสุดท้ายดื่ม 1 อึก',
         emoji: '🤙',
         sips: 0,
         tone: 'game',
@@ -110,6 +129,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: 'Q',
         title: 'ห้ามพูดด้วย',
         detail: 'ห้ามพูดกับคนที่ได้ไพ่นี้ ถ้าใครพูดด้วยก็โดน 1 อึก (จนกว่าจะมีคนเปิด Q ใบต่อไป)',
+        short: 'ใครพูดกับคนนี้ โดน 1 อึก',
         emoji: '🤫',
         sips: 0,
         tone: 'special',
@@ -118,6 +138,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: 'K',
         title: 'ราชาสั่งได้',
         detail: 'ใบแรกกำหนดทำอะไร ใบสองกำหนดทำที่ไหน ใบสามกำหนดทำยังไง (หรือนานเท่าไหร่) ใบสี่โดนเอง',
+        short: 'ใบที่ 4 ทำทุกอย่างที่กำหนดไว้',
         emoji: '👑',
         sips: 0,
         action: 'king',

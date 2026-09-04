@@ -154,8 +154,8 @@ function usePlayerJoinSound(count: number, inLobby: boolean) {
 function LoadingScreen({ label }: { label: string }) {
     return (
         <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-3">
-            <div className="size-6 animate-spin rounded-full border-2 border-line border-t-accent" />
-            <p className="text-[0.8125rem] text-muted">{label}</p>
+            <div className="size-7 animate-spin rounded-full border-2 border-line border-t-accent" />
+            <p className="text-[0.9375rem] text-muted">{label}</p>
         </main>
     )
 }
@@ -163,16 +163,16 @@ function LoadingScreen({ label }: { label: string }) {
 function ErrorScreen({ code, reason }: { code: string; reason: string }) {
     return (
         <main className="app-shell flex min-h-dvh flex-col items-center justify-center gap-3 text-center">
-            <h1 className="text-lg font-semibold">เข้าวง {code} ไม่ได้</h1>
-            <p className="text-[0.8125rem] text-muted">{reason}</p>
+            <h1 className="text-[1.1875rem] font-semibold">เข้าวง {code} ไม่ได้</h1>
+            <p className="text-[0.9375rem] text-muted">{reason}</p>
             <div className="flex w-full max-w-[16rem] flex-col gap-2 pt-2">
                 <button
                     onClick={() => window.location.reload()}
-                    className="panel min-h-12 rounded-field px-5 text-[0.9375rem] font-semibold"
+                    className="panel min-h-12 rounded-field px-5 text-[1.0625rem] font-semibold"
                 >
                     ลองใหม่อีกครั้ง
                 </button>
-                <Link href="/" className="py-2 text-[0.8125rem] font-medium text-accent">
+                <Link href="/" className="py-2 text-[0.9375rem] font-medium text-accent">
                     กลับหน้าแรก
                 </Link>
             </div>
