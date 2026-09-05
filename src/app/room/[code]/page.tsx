@@ -10,9 +10,15 @@ type Props = { params: Promise<{ code: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { code } = await params
+    const upper = code.toUpperCase()
     return {
-        title: `วง ${code.toUpperCase()} | เกมส์โดรามอน 🔔`,
-        description: `เข้าร่วมวงเกมส์โดรามอน รหัส ${code.toUpperCase()}`,
+        title: `วง ${upper}`,
+        description: `เข้าร่วมวงเกมส์โดรามอน รหัส ${upper} — เกมไพ่วงเหล้าเล่นพร้อมกันทั้งวงจากมือถือ`,
+        // Rooms last six hours and their codes get reused, so keeping them out
+        // of the index protects the one page that should rank. The link preview
+        // in chat apps still works: og tags are read live, not from the index.
+        robots: { index: false, follow: false },
+        alternates: { canonical: '/' },
     }
 }
 

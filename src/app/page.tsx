@@ -1,153 +1,31 @@
-'use client'
+import { GameGuide } from '@/components/game-guide'
+import { HomeClient } from '@/components/home-client'
+import { CARD_RULES } from '@/lib/rules'
+import {
+    AUTHOR,
+    FAQ,
+    HOW_TO_STEPS,
+    SITE_DESCRIPTION,
+    SITE_NAME,
+    SITE_TITLE,
+    SITE_URL,
+} from '@/lib/site'
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { BellMark } from '@/components/bell-mark'
-import { RulesSheet } from '@/components/rules-sheet'
-import { Button, Field, Panel } from '@/components/ui'
-import { createRoom } from '@/lib/api'
-import { playStart, unlockAudio } from '@/lib/feedback'
-import { useRememberedName } from '@/hooks/use-session'
-import { savePlayerId, saveLastName } from '@/lib/session'
-
-const MIN_PLAYERS = 2
-const MAX_PLAYERS = 12
-
+/**
+ * The home page is a server component so the guide below the game ships as
+ * plain HTML — a crawler (and a phone on a bad connection) sees the rules
+ * without running any JavaScript. Only the room controls are a client island.
+ */
 export default function HomePage() {
-    const router = useRouter()
-    // `remembered` comes from localStorage, `typed` is what the user has
-    // overridden. Keeping them apart lets us prefill without a setState in an effect.
-    const remembered = useRememberedName()
-    const [typed, setTyped] = useState<string | null>(null)
-    const name = typed ?? remembered
-    const [maxPlayers, setMaxPlayers] = useState(4)
-    const [joinCode, setJoinCode] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [rulesOpen, setRulesOpen] = useState(false)
-
-    const handleCreate = async () => {
-        if (!name.trim()) {
-            setError('ใส่ชื่อของหัวตี้ก่อนนะ')
-            return
-        }
-        setLoading(true)
-        setError(null)
-        try {
-            unlockAudio()
-            const { state, playerId } = await createRoom(name, maxPlayers)
-            savePlayerId(state.code, playerId)
-            saveLastName(name.trim())
-            playStart()
-            router.push(`/room/${state.code}`)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'สร้างวงไม่สำเร็จ')
-            setLoading(false)
-        }
-    }
-
-    const handleJoin = () => {
-        const code = joinCode.trim().toUpperCase()
-        if (code.length !== 4) {
-            setError('รหัสวงมี 4 ตัวอักษร')
-            return
-        }
-        unlockAudio()
-        router.push(`/room/${code}`)
-    }
-
     return (
-        <main className="app-shell stagger flex min-h-dvh flex-col justify-center gap-4 py-8">
-            <header className="animate-fade-up flex flex-col items-center gap-2.5 text-center">
-                <BellMark className="size-12 text-accent" swing />
-                <h1 className="text-[2rem] leading-tight font-semibold xs:text-[2.25rem]">
-                    เกมส์โดรามอน
-                </h1>
-                <p className="max-w-76 text-[0.9375rem] leading-relaxed text-muted">
-                    เกมไพ่วงเหล้า
-                </p>
-            </header>
+        <>
+            <HomeClient />
+            <GameGuide />
 
-            <Panel className="animate-fade-up space-y-3">
-                <Field
-                    label="ชื่อ"
-                    value={name}
-                    onChange={(event) => setTyped(event.target.value)}
-                    maxLength={16}
-                    placeholder="เช่น โนบิตะ"
-                    autoComplete="off"
-                />
-
-                <div className="space-y-1.5">
-                    <span className="label block">จำนวนสมาชิกในวง</span>
-                    <div className="flex items-center gap-2">
-                        <Stepper
-                            label="ลด"
-                            symbol="−"
-                            onClick={() => setMaxPlayers((v) => Math.max(MIN_PLAYERS, v - 1))}
-                            disabled={maxPlayers <= MIN_PLAYERS}
-                        />
-                        <div className="flex-1 rounded-field border border-line bg-ink py-1.5 text-center">
-                            <span className="text-[1.375rem] font-semibold">{maxPlayers}</span>
-                            <span className="ml-1 text-[0.9375rem] text-muted">คน</span>
-                        </div>
-                        <Stepper
-                            label="เพิ่ม"
-                            symbol="+"
-                            onClick={() => setMaxPlayers((v) => Math.min(MAX_PLAYERS, v + 1))}
-                            disabled={maxPlayers >= MAX_PLAYERS}
-                        />
-                    </div>
-                </div>
-
-                <Button
-                    variant="primary"
-                    loading={loading}
-                    onClick={handleCreate}
-                    silent
-                    className="w-full"
-                >
-                    สร้างวงใหม่
-                </Button>
-                {error && <p className="text-center text-[0.9375rem] text-drink">{error}</p>}
-            </Panel>
-
-            <section className="animate-fade-up space-y-2.5">
-                <div className="flex items-center gap-3">
-                    <span className="h-px flex-1 bg-line" />
-                    <span className="label">หรือมีรหัสวงอยู่แล้ว</span>
-                    <span className="h-px flex-1 bg-line" />
-                </div>
-                <div className="flex gap-2">
-                    <input
-                        value={joinCode}
-                        onChange={(event) =>
-                            setJoinCode(event.target.value.toUpperCase().slice(0, 4))
-                        }
-                        onKeyDown={(event) => event.key === 'Enter' && handleJoin()}
-                        placeholder="ABCD"
-                        inputMode="text"
-                        autoCapitalize="characters"
-                        autoComplete="off"
-                        aria-label="รหัสวง"
-                        className="min-w-0 flex-1 rounded-field border border-line bg-ink px-3.5 py-2 text-center text-[1.1875rem] font-semibold tracking-[0.3em] uppercase placeholder:text-muted/40 focus:border-accent focus:outline-none"
-                    />
-                    <Button variant="ghost" onClick={handleJoin} className="shrink-0">
-                        เข้าวง
-                    </Button>
-                </div>
-            </section>
-
-            <button
-                onClick={() => setRulesOpen(true)}
-                className="animate-fade-up mx-auto text-[0.9375rem] font-medium text-accent"
-            >
-                อ่านกฎทั้งหมด
-            </button>
-            <p className="text-center text-[0.875rem] text-muted">
+            <footer className="app-shell pb-8 text-center text-[0.875rem] text-muted">
                 Developed by{' '}
                 <a
-                    href="https://instagram.com/benzsupalukk"
+                    href={AUTHOR.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-accent"
@@ -155,32 +33,98 @@ export default function HomePage() {
                     @benzsupalukk
                 </a>
                 🫦
-            </p>
+            </footer>
 
-            <RulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
-        </main>
+            <StructuredData />
+        </>
     )
 }
 
-function Stepper({
-    label,
-    symbol,
-    onClick,
-    disabled,
-}: {
-    label: string
-    symbol: string
-    onClick: () => void
-    disabled: boolean
-}) {
+/**
+ * Structured data, so the result can carry a rating-style app panel and the FAQ
+ * accordion rather than a bare blue link. It is generated from the same
+ * constants the page renders, because Google penalises structured data that
+ * describes content the page does not actually show.
+ */
+function StructuredData() {
+    const graph = [
+        {
+            '@type': 'WebSite',
+            '@id': `${SITE_URL}/#website`,
+            url: `${SITE_URL}/`,
+            name: SITE_NAME,
+            description: SITE_DESCRIPTION,
+            inLanguage: 'th-TH',
+            publisher: { '@id': `${SITE_URL}/#author` },
+        },
+        {
+            '@type': 'Person',
+            '@id': `${SITE_URL}/#author`,
+            name: AUTHOR.name,
+            url: AUTHOR.website,
+            sameAs: [AUTHOR.website, AUTHOR.instagram],
+        },
+        {
+            '@type': ['WebApplication', 'Game'],
+            '@id': `${SITE_URL}/#app`,
+            name: SITE_TITLE,
+            url: `${SITE_URL}/`,
+            description: SITE_DESCRIPTION,
+            applicationCategory: 'GameApplication',
+            operatingSystem: 'Web browser (iOS, Android, desktop)',
+            browserRequirements: 'ต้องใช้เบราว์เซอร์ที่เปิด JavaScript',
+            inLanguage: 'th-TH',
+            numberOfPlayers: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 12 },
+            gameItem: { '@type': 'Thing', name: 'ไพ่ 1 สำรับ 52 ใบ' },
+            author: { '@id': `${SITE_URL}/#author` },
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'THB' },
+        },
+        {
+            '@type': 'HowTo',
+            '@id': `${SITE_URL}/#howto`,
+            name: 'วิธีเล่นเกมส์โดรามอน',
+            description: 'สร้างวง แชร์ลิงก์ให้เพื่อน แล้วผลัดกันเปิดไพ่ตามกติกาของแต่ละใบ',
+            inLanguage: 'th-TH',
+            totalTime: 'PT2M',
+            step: HOW_TO_STEPS.map((step, index) => ({
+                '@type': 'HowToStep',
+                position: index + 1,
+                name: step.title,
+                text: step.detail,
+                url: `${SITE_URL}/#howto`,
+            })),
+        },
+        {
+            '@type': 'FAQPage',
+            '@id': `${SITE_URL}/#faq`,
+            inLanguage: 'th-TH',
+            mainEntity: FAQ.map((item) => ({
+                '@type': 'Question',
+                name: item.question,
+                acceptedAnswer: { '@type': 'Answer', text: item.answer },
+            })),
+        },
+        {
+            '@type': 'ItemList',
+            '@id': `${SITE_URL}/#cards`,
+            name: 'กติกาไพ่ทั้ง 13 ใบ',
+            itemListElement: Object.values(CARD_RULES).map((rule, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                name: `ไพ่ ${rule.rank} — ${rule.title}`,
+                description: rule.detail,
+            })),
+        },
+    ]
+
     return (
-        <button
-            aria-label={label}
-            onClick={onClick}
-            disabled={disabled}
-            className="flex size-12 shrink-0 items-center justify-center rounded-field border border-line bg-ink text-[1.375rem] font-medium transition-opacity active:opacity-60 disabled:opacity-30"
-        >
-            {symbol}
-        </button>
+        <script
+            type="application/ld+json"
+            // The content is our own constants, never user input, so there is
+            // nothing here for a page visitor to inject into.
+            dangerouslySetInnerHTML={{
+                __html: JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }),
+            }}
+        />
     )
 }
