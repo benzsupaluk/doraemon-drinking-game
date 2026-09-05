@@ -9,6 +9,7 @@ import { createRoom } from '@/lib/api'
 import { playStart, unlockAudio } from '@/lib/feedback'
 import { useRememberedName } from '@/hooks/use-session'
 import { savePlayerId, saveLastName } from '@/lib/session'
+import { AUTHOR } from '@/lib/site'
 
 const MIN_PLAYERS = 2
 const MAX_PLAYERS = 12
@@ -146,6 +147,23 @@ export function HomeClient() {
                 อ่านกฎทั้งหมด
             </button>
             <RulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
+
+            <p className="text-[0.875rem] text-muted/80 text-center">
+                ดื่มเพื่อความบันเทิง อย่าดื่มอย่างไร้สติเหมือนตอนไปรักเขา
+            </p>
+
+            <footer className="app-shell pb-8 text-center text-[0.875rem] text-muted">
+                โดย{' '}
+                <a
+                    href={AUTHOR.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-accent"
+                >
+                    @benzsupalukk
+                </a>
+                🫦
+            </footer>
         </main>
     )
 }

@@ -20,20 +20,6 @@ export default function HomePage() {
     return (
         <>
             <HomeClient />
-            <GameGuide />
-
-            <footer className="app-shell pb-8 text-center text-[0.875rem] text-muted">
-                Developed by{' '}
-                <a
-                    href={AUTHOR.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-accent"
-                >
-                    @benzsupalukk
-                </a>
-                🫦
-            </footer>
 
             <StructuredData />
         </>
