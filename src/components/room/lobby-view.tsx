@@ -1,20 +1,35 @@
 'use client'
 
 import { useState } from 'react'
+import { quitLabel, quitPrompt, useQuitRoom } from './quit-room'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
 import { BellMark } from '@/components/bell-mark'
 import { Button, Panel } from '@/components/ui'
 import { playTap } from '@/lib/feedback'
 
+/**
+ * Players needed before the host can start. Mirrors `MIN_TO_START` on the
+ * server: outside production one tester can start a round alone, so the game
+ * screen can be worked on without a second browser.
+ */
+const MIN_TO_START = process.env.NODE_ENV === 'production' ? 2 : 1
+
 export function LobbyView({ state, me, connection, error, setError, act, origin }: ViewProps) {
     const [copied, setCopied] = useState(false)
     const [starting, setStarting] = useState(false)
+    const [confirmingQuit, setConfirmingQuit] = useState(false)
+    const { quitting, quit } = useQuitRoom({
+        code: state.code,
+        meId: me.id,
+        isHost: me.isHost,
+        act,
+    })
 
     // `origin` comes from request headers server-side, so the link is correct in the first HTML.
     const inviteUrl = `${origin}/room/${state.code}`
     const emptySeats = Math.max(0, state.maxPlayers - state.players.length)
-    const canStart = state.players.length >= 2
+    const canStart = state.players.length >= MIN_TO_START
 
     const handleCopy = async () => {
         try {
@@ -50,6 +65,7 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
         if (!ok) setStarting(false)
     }
 
+
     return (
         <main className="app-shell flex min-h-dvh flex-col pb-4">
             <RoomHeader code={state.code} connection={connection} />
@@ -71,7 +87,12 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
                         {inviteUrl}
                     </p>
                     <div className="flex gap-2">
-                        <Button variant="primary" onClick={handleShare} silent className="min-w-0 flex-1">
+                        <Button
+                            variant="primary"
+                            onClick={handleShare}
+                            silent
+                            className="min-w-0 flex-1"
+                        >
                             แชร์ลิงก์
                         </Button>
                         <Button variant="ghost" onClick={handleCopy} className="shrink-0">
@@ -80,7 +101,9 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
                     </div>
                     <p className="text-center text-[0.875rem] text-muted">
                         หรือให้เพื่อนกรอกรหัส{' '}
-                        <span className="font-semibold tracking-[0.16em] text-text">{state.code}</span>
+                        <span className="font-semibold tracking-[0.16em] text-text">
+                            {state.code}
+                        </span>
                     </p>
                 </Panel>
 
@@ -129,7 +152,7 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
                 {error && <p className="text-center text-[0.9375rem] text-drink">{error}</p>}
             </div>
 
-            <div className="sticky bottom-0 mt-4 bg-ink pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+            <div className="sticky bottom-0 mt-4 space-y-2 bg-ink pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                 {me.isHost ? (
                     <Button
                         variant="gold"
@@ -142,9 +165,44 @@ export function LobbyView({ state, me, connection, error, setError, act, origin 
                         {canStart ? 'เริ่มเกม' : 'ต้องมีอย่างน้อย 2 คน'}
                     </Button>
                 ) : (
-                    <p className="py-3 text-center text-[0.9375rem] text-muted">
+                    <p className="py-2 text-center text-[0.9375rem] text-muted">
                         รอหัวตี้กดเริ่มเกม ไม่ต้องรีเฟรช
                     </p>
+                )}
+
+                {confirmingQuit ? (
+                    <div className="space-y-2">
+                        <p className="text-center text-[0.875rem] text-muted">
+                            {quitPrompt(me.isHost, false)}
+                        </p>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setConfirmingQuit(false)}
+                                className="min-w-0 flex-1"
+                            >
+                                ยังไม่ออก
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={quit}
+                                loading={quitting}
+                                className="min-w-0 flex-1 text-drink"
+                            >
+                                {quitLabel(me.isHost)}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setConfirmingQuit(true)}
+                            className="min-w-0 flex-1"
+                        >
+                            {quitLabel(me.isHost)}
+                        </Button>
+                    </div>
                 )}
             </div>
         </main>

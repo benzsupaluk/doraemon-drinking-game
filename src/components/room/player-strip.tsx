@@ -14,13 +14,17 @@ export function PlayerStrip({ players, turnIndex, meId }: Props) {
 
     // Keep the active player centred, so nobody has to scroll to find them in a big group.
     useEffect(() => {
-        activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+        activeRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center',
+        })
     }, [turnIndex])
 
     const nameOf = (id: string | null) => players.find((player) => player.id === id)?.name
 
     return (
-        <ul className="no-scrollbar -mx-4.5 flex gap-1.5 overflow-x-auto px-4.5">
+        <ul className="no-scrollbar -mx-4.5 flex gap-1.5 overflow-x-auto px-4.5 py-2">
             {players.map((player, index) => {
                 const isTurn = index === turnIndex
                 const buddyName = nameOf(player.buddyId)

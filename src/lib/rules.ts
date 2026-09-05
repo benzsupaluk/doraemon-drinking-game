@@ -1,4 +1,4 @@
-import type { Rank } from './types'
+import type { Rank, RoomState } from './types'
 
 export interface CardRule {
     rank: Rank
@@ -55,7 +55,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '4',
         title: 'ดื่ม 4 อึก',
         detail: 'ซวยแล้ว จัดไป 4 อึก',
-        short: 'ซวยแล้ว จัดไป 4 อึก',
+        short: 'ว้าย จัดไป 4 อึก',
         emoji: '🥃',
         sips: 4,
         tone: 'drink',
@@ -83,7 +83,7 @@ export const CARD_RULES: Record<Rank, CardRule> = {
         rank: '7',
         title: 'เกมเลข 7',
         detail: 'พูดเรียงเลขไปเรื่อยๆ ข้ามเลขที่ลงท้ายด้วย 7 หรือหารด้วย 7 ลงตัว (7 14 17 21 27 28) ผิดที่ใครก็ 1 อึก',
-        short: 'ข้ามเลขที่มี 7 หรือหารด้วย 7 ผิด 1 อึก',
+        short: 'ข้ามเลขที่มี 7 หรือหารด้วย 7 ผิด\n1 อึก',
         emoji: '7️⃣',
         sips: 0,
         tone: 'game',
@@ -91,8 +91,8 @@ export const CARD_RULES: Record<Rank, CardRule> = {
     '8': {
         rank: '8',
         title: 'ไพ่ติดตัว',
-        detail: 'เก็บไพ่นี้ไว้กับตัว ใช้เองหรือให้เพื่อนเพื่อไปห้องน้ำได้ (เกมนี้ห้ามลุกไปเข้าห้องน้ำ แต่เอาจริงๆ เปลี่ยนเป็นอย่างอื่นก็ดีนะครับ 555)',
-        short: 'เก็บไว้ใช้ไปห้องน้ำ ให้เพื่อนก็ได้',
+        detail: 'เก็บไพ่นี้ไว้กับตัว ใช้เองหรือให้เพื่อน เพื่อไว้ทำข้อห้าม (เช่น ห้ามเข้าห้องน้ำ)',
+        short: 'เก็บไว้ใช้ทำข้อห้าม ให้เพื่อนก็ได้นะ',
         emoji: '🎫',
         sips: 0,
         action: 'hold',
@@ -154,12 +154,43 @@ export const KING_STEPS = [
     { title: 'ใบที่ 4 — โดนเอง! 💀', detail: 'คนเปิดใบนี้ต้องทำทุกอย่างที่ 3 ใบก่อนหน้ากำหนดไว้' },
 ] as const
 
+/** What each of the first three Kings asks its drawer to type in. */
+export const KING_INPUTS = [
+    { label: 'ทำอะไร', placeholder: 'เช่น เต้นท่าไก่ย่าง' },
+    { label: 'ทำที่ไหน', placeholder: 'เช่น บนเก้าอี้กลางวง' },
+    { label: 'ทำยังไง / นานเท่าไหร่', placeholder: 'เช่น ช้าๆ 30 วินาที' },
+] as const
+
+/** Longest a King's order may be, so it still fits on one line everywhere. */
+export const KING_DECREE_MAX = 60
+
+/**
+ * The King that is waiting for its order (1, 2 or 3), or null when nothing is
+ * pending. Derived from state rather than stored, so the server check and the
+ * screen can never disagree about whose turn it is to decide.
+ */
+export function pendingKingStep(state: RoomState): number | null {
+    if (state.phase !== 'revealed' || state.currentCard?.rank !== 'K') return null
+    if (state.kingCount < 1 || state.kingCount > 3) return null
+    if (state.kingDecrees.some((decree) => decree.step === state.kingCount)) return null
+    return state.kingCount
+}
+
+/** The three orders in step order, with a hole where one is not set yet. */
+export function kingDecreeSlots(state: RoomState) {
+    return [1, 2, 3].map((step) => ({
+        step,
+        label: KING_INPUTS[step - 1].label,
+        decree: state.kingDecrees.find((item) => item.step === step) ?? null,
+    }))
+}
+
 /** Rules that apply for the whole game. */
 export const GLOBAL_RULES = [
     {
         emoji: '🙅',
         title: 'ห้ามชี้นิ้ว',
-        detail: 'ระหว่างเกมห้ามชี้นิ้ว เพราะเราเป็นโดเรมอน ถ้าชี้ก็โดน 1 อึก',
+        detail: 'พวกเราเป็นโดรามอน (หลบลิขสิทธิ์) ห้ามใช้นิ้วชี้ชี้เพื่อน ถ้าชี้ก็โดน 1 อึก',
     },
     {
         emoji: '🚻',

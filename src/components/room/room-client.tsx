@@ -93,7 +93,9 @@ export function RoomClient({
     }
 
     // Polling has given up: show why and stop, instead of spinning forever.
-    if (fatal && !state) return <ErrorScreen code={code} reason={fatal} />
+    // This also covers a host cancelling the group mid-game — the room 404s, and
+    // leaving the frozen game on screen would look like the app had hung.
+    if (fatal) return <ErrorScreen code={code} reason={fatal} />
 
     if (!state) {
         return (

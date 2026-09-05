@@ -50,9 +50,11 @@ export type GameActionInput =
     | { type: 'draw' }
     | { type: 'buddy'; buddyId: string }
     | { type: 'use-card'; cardId: string }
+    | { type: 'king-decree'; text: string }
     | { type: 'end-turn' }
     | { type: 'restart' }
     | { type: 'leave' }
+    | { type: 'cancel' }
 
 /**
  * Applying an action is a read-modify-write, so it has to hold that room's
@@ -83,6 +85,9 @@ export async function applyAction(
             case 'use-card':
                 game.useHeldCard(record, playerId, action.cardId)
                 break
+            case 'king-decree':
+                game.setKingDecree(record, playerId, action.text)
+                break
             case 'end-turn':
                 game.endTurn(record, playerId)
                 break
@@ -96,6 +101,13 @@ export async function applyAction(
                     return record.state
                 }
                 break
+            }
+            case 'cancel': {
+                // The host closes the group: drop the room outright, so nobody
+                // is left sitting in a lobby that will never start.
+                game.cancel(record, playerId)
+                await store.remove(upper)
+                return record.state
             }
             default: {
                 const never: never = action

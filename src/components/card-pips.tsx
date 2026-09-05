@@ -123,7 +123,7 @@ export function CardPips({ rank, suit, color }: { rank: Rank; suit: Suit; color:
                 {pips.map(([x, y], index) => (
                     <span
                         key={index}
-                        className="absolute text-[1em] leading-none"
+                        className="absolute text-[2em] leading-none"
                         style={{
                             left: `${x * 100}%`,
                             top: `${y * 100}%`,

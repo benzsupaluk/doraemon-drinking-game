@@ -6,7 +6,17 @@ export const dynamic = 'force-dynamic'
 
 type Params = { params: Promise<{ code: string }> }
 
-const ACTION_TYPES = ['start', 'draw', 'buddy', 'use-card', 'end-turn', 'restart', 'leave'] as const
+const ACTION_TYPES = [
+    'start',
+    'draw',
+    'buddy',
+    'use-card',
+    'king-decree',
+    'end-turn',
+    'restart',
+    'leave',
+    'cancel',
+] as const
 
 function parseAction(body: Record<string, unknown>): GameActionInput {
     const type = String(body.type ?? '')
@@ -15,6 +25,7 @@ function parseAction(body: Record<string, unknown>): GameActionInput {
     }
     if (type === 'buddy') return { type, buddyId: String(body.buddyId ?? '') }
     if (type === 'use-card') return { type, cardId: String(body.cardId ?? '') }
+    if (type === 'king-decree') return { type, text: String(body.text ?? '') }
     return { type } as GameActionInput
 }
 

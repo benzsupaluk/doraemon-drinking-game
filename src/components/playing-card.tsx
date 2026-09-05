@@ -51,7 +51,11 @@ export function PlayingCard({
                 {/* Back — a bordered panel, like the back of a real deck. */}
                 <div className="card-face card-back-art flex items-center justify-center p-2.5">
                     <div className="flex size-full flex-col items-center justify-center gap-3 rounded-[0.6rem] border border-white/12 px-5">
-                        <BellMark className="size-10 text-accent/80" swing={!ringing} ring={ringing} />
+                        <BellMark
+                            className="size-10 text-accent/80"
+                            swing={!ringing}
+                            ring={ringing}
+                        />
                         {backHint && (
                             <p className="text-center text-[0.9375rem] font-medium text-text/75">
                                 {backHint}
@@ -72,11 +76,11 @@ export function PlayingCard({
                             />
 
                             {/*
-                              * Fixed proportions rather than flex, so the pip
-                              * field is the same size on every card the way a
-                              * real deck is. Letting it flex meant a long rule
-                              * squashed the pips into each other.
-                              */}
+                             * Fixed proportions rather than flex, so the pip
+                             * field is the same size on every card the way a
+                             * real deck is. Letting it flex meant a long rule
+                             * squashed the pips into each other.
+                             */}
                             <div className="h-[57%] shrink-0 px-8 pt-7 pb-2">
                                 <CardPips rank={card.rank} suit={card.suit} color={ink} />
                             </div>
@@ -87,9 +91,11 @@ export function PlayingCard({
                                     className="text-[1.1875rem] leading-tight font-semibold"
                                     style={{ color: TONE[rule.tone] }}
                                 >
-                                    {kingStep ? kingStep.title.replace(/^ใบที่ \d+ — /, '') : rule.title}
+                                    {kingStep
+                                        ? kingStep.title.replace(/^ใบที่ \d+ — /, '')
+                                        : rule.title}
                                 </h2>
-                                <p className="mt-1 line-clamp-2 text-[0.875rem] leading-snug text-card-ink/65">
+                                <p className="mt-1 line-clamp-2 text-[0.875rem] leading-snug text-card-ink/65 whitespace-pre-line">
                                     {kingStep
                                         ? `ใบที่ ${kingIndex} · ${kingStep.detail}`
                                         : rule.short}
@@ -111,7 +117,7 @@ function CornerIndex({ card, ink, className }: { card: Card; ink: string; classN
             style={{ color: ink }}
         >
             <span className="text-[1.1875rem] font-semibold">{card.rank}</span>
-            <span className="text-[1rem]">{SUIT_SYMBOL[card.suit]}</span>
+            <span className="text-[2rem]">{SUIT_SYMBOL[card.suit]}</span>
         </div>
     )
 }

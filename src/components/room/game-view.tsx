@@ -1,16 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { HeldCards } from './held-cards-sheet'
+import { KingStatus } from './king-sheet'
 import { PlayerStrip } from './player-strip'
+import { QuitSheet, quitLabel, useQuitRoom } from './quit-room'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
 import { DeckStack, PlayingCard } from '@/components/playing-card'
 import { Button } from '@/components/ui'
-import { CARD_RULES, SUIT_SYMBOL } from '@/lib/rules'
+import { CARD_RULES, KING_DECREE_MAX, KING_INPUTS, SUIT_SYMBOL, pendingKingStep } from '@/lib/rules'
 import { unlockAudio } from '@/lib/feedback'
 
 export function GameView({ state, me, connection, error, setError, act, isMyTurn }: ViewProps) {
     const [busy, setBusy] = useState(false)
+    const [kingOpen, setKingOpen] = useState(false)
+    const [heldOpen, setHeldOpen] = useState(false)
+    const [quitOpen, setQuitOpen] = useState(false)
+    const { quitting, quit } = useQuitRoom({
+        code: state.code,
+        meId: me.id,
+        isHost: me.isHost,
+        act,
+    })
 
     const currentPlayer = state.players[state.turnIndex]
     const revealed = state.phase === 'revealed'
@@ -49,12 +61,26 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
 
     const rule = faceCard ? CARD_RULES[faceCard.rank] : null
     const needsBuddy = isMyTurn && state.awaitingBuddy
+    const kingStep = pendingKingStep(state)
+
+    // The fourth King is the payoff: pop the standing order open for everyone
+    // the moment it lands, so nobody has to go looking for it.
+    const shownFourth = useRef<string | null>(null)
+    useEffect(() => {
+        const card = state.currentCard
+        if (!card || card.rank !== 'K' || state.kingCount < 4) return
+        if (shownFourth.current === card.id) return
+        shownFourth.current = card.id
+        setKingOpen(true)
+    }, [state.currentCard, state.kingCount])
 
     return (
         <main className="app-shell flex h-dvh flex-col overflow-hidden">
             <RoomHeader
                 code={state.code}
                 connection={connection}
+                onQuit={() => setQuitOpen(true)}
+                quitLabel={quitLabel(me.isHost)}
                 right={
                     <span className="mr-1 text-[0.875rem] text-muted">
                         เหลือ {state.deckCount}
@@ -62,7 +88,28 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                 }
             />
 
+            <QuitSheet
+                open={quitOpen}
+                onOpenChange={setQuitOpen}
+                isHost={me.isHost}
+                playing
+                quitting={quitting}
+                onQuit={quit}
+            />
+
             <PlayerStrip players={state.players} turnIndex={state.turnIndex} meId={me.id} />
+
+            {/* Side rail: things that stay relevant all round, not just this turn. */}
+            <div className="fixed top-[20%] right-3 z-30 flex flex-col items-end gap-2">
+                <KingStatus state={state} open={kingOpen} onOpenChange={setKingOpen} />
+                <HeldCards
+                    cards={me.heldCards}
+                    busy={busy}
+                    open={heldOpen}
+                    onOpenChange={setHeldOpen}
+                    onUse={(cardId) => void run({ type: 'use-card', cardId })}
+                />
+            </div>
 
             <p
                 key={currentPlayer?.id ?? 'none'}
@@ -125,18 +172,17 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                                 {buddyHint(state, currentPlayer?.id)}
                             </span>
                         )}
+                        {kingHint(state, faceCard) && (
+                            <button
+                                type="button"
+                                onClick={() => setKingOpen(true)}
+                                className="block w-full text-[0.875rem] text-gold"
+                            >
+                                {kingHint(state, faceCard)}
+                            </button>
+                        )}
                     </p>
-                ) : (
-                    me.heldCards.length > 0 && (
-                        <button
-                            onClick={() => void run({ type: 'use-card', cardId: me.heldCards[0].id })}
-                            disabled={busy}
-                            className="text-[0.875rem] text-gold"
-                        >
-                            ใช้ไพ่ติดตัว ({me.heldCards.length})
-                        </button>
-                    )
-                )}
+                ) : null}
             </div>
 
             {error && (
@@ -151,6 +197,16 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                         busy={busy}
                         onPick={(buddyId) => void run({ type: 'buddy', buddyId })}
                     />
+                ) : kingStep && isMyTurn ? (
+                    <KingDecreeForm
+                        step={kingStep}
+                        busy={busy}
+                        onSubmit={(text) => void run({ type: 'king-decree', text })}
+                    />
+                ) : kingStep ? (
+                    <p className="py-3.5 text-center text-[0.9375rem] text-muted">
+                        รอ {currentPlayer?.name ?? '—'} สั่งในฐานะราชา
+                    </p>
                 ) : isMyTurn ? (
                     revealed ? (
                         <Button
@@ -179,6 +235,57 @@ export function GameView({ state, me, connection, error, setError, act, isMyTurn
                 )}
             </div>
         </main>
+    )
+}
+
+/**
+ * Kings 1-3 each get one line of the order typed in. It replaces the "end turn"
+ * button rather than sitting next to it: the server refuses to end the turn
+ * until the order is in, so offering both would only produce an error.
+ */
+function KingDecreeForm({
+    step,
+    busy,
+    onSubmit,
+}: {
+    step: number
+    busy: boolean
+    onSubmit: (text: string) => void
+}) {
+    const [text, setText] = useState('')
+    const input = KING_INPUTS[step - 1]
+
+    return (
+        <form
+            onSubmit={(event) => {
+                event.preventDefault()
+                if (!text.trim() || busy) return
+                onSubmit(text)
+            }}
+            className="animate-fade-up space-y-2"
+        >
+            <p className="text-center text-[0.9375rem] font-medium text-gold">
+                👑 ราชาใบที่ {step} — กำหนด &ldquo;{input.label}&rdquo;
+            </p>
+            <input
+                autoFocus
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                maxLength={KING_DECREE_MAX}
+                placeholder={input.placeholder}
+                aria-label={input.label}
+                className="w-full rounded-field border border-line bg-surface px-3.5 py-3 font-medium text-text placeholder:text-muted/60 focus:border-gold focus:outline-none"
+            />
+            <Button
+                type="submit"
+                variant="gold"
+                loading={busy}
+                disabled={!text.trim()}
+                className="w-full"
+            >
+                สั่งเลย
+            </Button>
+        </form>
     )
 }
 
@@ -225,6 +332,18 @@ function targetHint(rank: string, players: ViewProps['state']['players'], turnIn
         return `${right?.name} (ทางขวา) ดื่ม 1 อึก`
     }
     return rule.title
+}
+
+/**
+ * Echo the King's order under the card, so whoever typed it sees it landed and
+ * everyone else can read it without opening the sheet. Tapping it opens the
+ * sheet with all three lines.
+ */
+function kingHint(state: ViewProps['state'], card: ViewProps['state']['currentCard']) {
+    if (!card || card.rank !== 'K') return null
+    if (state.kingCount >= 4) return 'ดูคำสั่งทั้งหมดที่ต้องทำ 👑'
+    const decree = state.kingDecrees.find((item) => item.step === state.kingCount)
+    return decree ? `สั่งว่า “${decree.text}”` : null
 }
 
 function buddyHint(state: ViewProps['state'], playerId?: string) {

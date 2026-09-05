@@ -57,21 +57,20 @@ export default function HomePage() {
     }
 
     return (
-        <main className="app-shell stagger flex min-h-dvh flex-col justify-center gap-5 py-8">
+        <main className="app-shell stagger flex min-h-dvh flex-col justify-center gap-4 py-8">
             <header className="animate-fade-up flex flex-col items-center gap-2.5 text-center">
                 <BellMark className="size-12 text-accent" swing />
                 <h1 className="text-[2rem] leading-tight font-semibold xs:text-[2.25rem]">
                     เกมส์โดรามอน
                 </h1>
-                <p className="max-w-[19rem] text-[0.9375rem] leading-relaxed text-muted">
-                    เกมไพ่วงเหล้า เปิดไพ่ไปเรื่อยๆ ใครได้ไพ่อะไรก็ทำตามนั้น
-                    เล่นพร้อมกันทั้งวงจากมือถือของแต่ละคน
+                <p className="max-w-76 text-[0.9375rem] leading-relaxed text-muted">
+                    เกมไพ่วงเหล้า
                 </p>
             </header>
 
-            <Panel className="animate-fade-up space-y-4">
+            <Panel className="animate-fade-up space-y-3">
                 <Field
-                    label="ชื่อหัวตี้"
+                    label="ชื่อ"
                     value={name}
                     onChange={(event) => setTyped(event.target.value)}
                     maxLength={16}
@@ -88,7 +87,7 @@ export default function HomePage() {
                             onClick={() => setMaxPlayers((v) => Math.max(MIN_PLAYERS, v - 1))}
                             disabled={maxPlayers <= MIN_PLAYERS}
                         />
-                        <div className="flex-1 rounded-field border border-line bg-ink py-2.5 text-center">
+                        <div className="flex-1 rounded-field border border-line bg-ink py-1.5 text-center">
                             <span className="text-[1.375rem] font-semibold">{maxPlayers}</span>
                             <span className="ml-1 text-[0.9375rem] text-muted">คน</span>
                         </div>
@@ -101,7 +100,13 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                <Button variant="primary" loading={loading} onClick={handleCreate} silent className="w-full">
+                <Button
+                    variant="primary"
+                    loading={loading}
+                    onClick={handleCreate}
+                    silent
+                    className="w-full"
+                >
                     สร้างวงใหม่
                 </Button>
                 {error && <p className="text-center text-[0.9375rem] text-drink">{error}</p>}
@@ -116,14 +121,16 @@ export default function HomePage() {
                 <div className="flex gap-2">
                     <input
                         value={joinCode}
-                        onChange={(event) => setJoinCode(event.target.value.toUpperCase().slice(0, 4))}
+                        onChange={(event) =>
+                            setJoinCode(event.target.value.toUpperCase().slice(0, 4))
+                        }
                         onKeyDown={(event) => event.key === 'Enter' && handleJoin()}
                         placeholder="ABCD"
                         inputMode="text"
                         autoCapitalize="characters"
                         autoComplete="off"
                         aria-label="รหัสวง"
-                        className="min-w-0 flex-1 rounded-field border border-line bg-ink px-3.5 py-3 text-center text-[1.1875rem] font-semibold tracking-[0.3em] uppercase placeholder:text-muted/40 focus:border-accent focus:outline-none"
+                        className="min-w-0 flex-1 rounded-field border border-line bg-ink px-3.5 py-2 text-center text-[1.1875rem] font-semibold tracking-[0.3em] uppercase placeholder:text-muted/40 focus:border-accent focus:outline-none"
                     />
                     <Button variant="ghost" onClick={handleJoin} className="shrink-0">
                         เข้าวง
@@ -137,6 +144,18 @@ export default function HomePage() {
             >
                 อ่านกฎทั้งหมด
             </button>
+            <p className="text-center text-[0.875rem] text-muted">
+                Developed by{' '}
+                <a
+                    href="https://instagram.com/benzsupalukk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-accent"
+                >
+                    @benzsupalukk
+                </a>
+                🫦
+            </p>
 
             <RulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
         </main>

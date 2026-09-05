@@ -4,11 +4,16 @@ A Thai drinking card game for a whole table, played from everyone's own phone.
 The host opens a room, shares an invite link, and the group flips cards one at a
 time — whatever card you draw, you do what it says.
 
-When it's your turn, **your phone vibrates and rings a bell** so nobody has to
-stare at the screen waiting.
 
 > Please drink responsibly 🍻 This is built for fun among consenting adults.
 > Every rule works just as well with water or a silly dare instead of alcohol.
+
+---
+
+## Author
+
+Built by **Benz Supaluk** — [benzsupaluk.vercel.app](https://benzsupaluk.vercel.app/)
+· [@benzsupalukk on Instagram](https://instagram.com/benzsupalukk)
 
 ---
 
@@ -23,6 +28,7 @@ stare at the screen waiting.
 - [API](#api)
 - [Project layout](#project-layout)
 - [Troubleshooting](#troubleshooting)
+- [Author](#author)
 
 ---
 
@@ -79,12 +85,15 @@ Nobody has to remember who is paired with whom:
 - **Buddy pairs** (card 5) — both players get a 🤝 badge, and when one of them has
   to drink the app reminds you the other one drinks too. Picking a new buddy
   clears both players' old pairings, so no stale pairs are left behind.
-- **Who is holding a card 8** — shown as a counter on their avatar; the owner can
-  spend it themselves.
+- **Who is holding a card 8** — shown as a counter on their avatar. The owner
+  keeps a 🎫 button on the side rail and can spend a held card at any moment, on
+  anyone's turn.
 - **Who is under the Q** — marked with 🤫, and it moves automatically when the next
   Q is drawn.
-- **How many Kings have appeared** — the card face shows the right instruction for
-  the 1st, 2nd, 3rd or 4th King.
+- **What the King ordered** — Kings 1, 2 and 3 each type in their line ("ทำอะไร",
+  "ทำที่ไหน", "ทำยังไง/นานเท่าไหร่") and the turn can't end until they do. The 👑
+  button on the side rail shows the standing order all round, and opens by itself
+  when the fourth King lands on whoever has to perform it.
 - **Cards 9 and 10** — the app names the player who actually has to drink instead
   of making you work out "left" and "right".
 
@@ -363,10 +372,12 @@ Every endpoint is `force-dynamic` and responds with `Cache-Control: no-store`.
 | `start`    | —         | host                                  |
 | `draw`     | —         | the player whose turn it is           |
 | `buddy`    | `buddyId` | current player, after drawing a 5     |
-| `use-card` | `cardId`  | the holder of that card 8             |
+| `use-card` | `cardId`  | the holder of that card 8, at any time |
+| `king-decree` | `text` | current player, after drawing King 1–3 |
 | `end-turn` | —         | the player whose turn it is           |
 | `restart`  | —         | host                                  |
 | `leave`    | —         | yourself                              |
+| `cancel`   | —         | host — closes the room for everyone   |
 
 Every permission check happens on the server: not your turn → `403`, not the host
 → `403`, room full / duplicate name / buddy not yet chosen → `400`, unknown room →
@@ -403,7 +414,11 @@ src/
 │       ├── game-view.tsx         the main play screen
 │       ├── finished-view.tsx     round summary and restart
 │       ├── player-strip.tsx      player rail; scrolls the active player into view
-│       └── room-header.tsx       room code, connection dot, sound, rules
+│       ├── king-sheet.tsx        👑 side badge + the King's standing order
+│       ├── held-cards-sheet.tsx  🎫 side badge + spending a held card 8
+│       ├── side-badge.tsx        one button on the floating right-hand rail
+│       ├── quit-room.tsx         leaving, and the host closing the room
+│       └── room-header.tsx       room code, connection dot, sound, rules, leave
 ├── hooks/
 │   ├── use-room.ts               polling with a version cursor, plus action dispatch
 │   └── use-session.ts            reads localStorage via useSyncExternalStore

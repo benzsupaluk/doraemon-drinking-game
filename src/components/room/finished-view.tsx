@@ -1,15 +1,20 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { quitLabel, useQuitRoom } from './quit-room'
 import { RoomHeader } from './room-header'
 import type { ViewProps } from './types'
 import { Button, Panel } from '@/components/ui'
 import { SUIT_SYMBOL } from '@/lib/rules'
 
 export function FinishedView({ state, me, connection, error, act }: ViewProps) {
-    const router = useRouter()
     const [busy, setBusy] = useState(false)
+    const { quitting, quit } = useQuitRoom({
+        code: state.code,
+        meId: me.id,
+        isHost: me.isHost,
+        act,
+    })
 
     const ranking = [...state.players].sort((a, b) => b.cardsDrawn - a.cardsDrawn)
     const tooFewPlayers = state.players.length < 2
@@ -96,8 +101,8 @@ export function FinishedView({ state, me, connection, error, act }: ViewProps) {
                         รอหัวตี้เริ่มรอบใหม่
                     </p>
                 )}
-                <Button variant="ghost" onClick={() => router.push('/')} className="w-full">
-                    ออกจากวง
+                <Button variant="ghost" onClick={quit} loading={quitting} className="w-full">
+                    {quitLabel(me.isHost)}
                 </Button>
             </div>
         </main>

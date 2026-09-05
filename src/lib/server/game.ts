@@ -1,6 +1,6 @@
 import { RoomError } from './errors'
 import type { RoomRecord } from './store'
-import { CARD_RULES } from '../rules'
+import { CARD_RULES, KING_DECREE_MAX, pendingKingStep } from '../rules'
 import type { Card, LogEntry, Player, Rank, RoomState, Suit } from '../types'
 
 const SUITS: Suit[] = ['spades', 'hearts', 'diamonds', 'clubs']
@@ -10,6 +10,13 @@ const LOG_LIMIT = 30
 
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 12
+
+/**
+ * How many players a round needs to start. Outside production a single tester
+ * can start on their own, so the game screen can be worked on without opening a
+ * second browser. Everything else still uses MIN_PLAYERS.
+ */
+export const MIN_TO_START = process.env.NODE_ENV === 'production' ? MIN_PLAYERS : 1
 
 /**
  * Every game rule lives in this file, and every function here is pure: it only
@@ -93,6 +100,7 @@ export function newRoomRecord(code: string, hostName: string, maxPlayers: number
         deckCount: 52,
         currentCard: null,
         kingCount: 0,
+        kingDecrees: [],
         awaitingBuddy: false,
         log: [],
         version: 1,
@@ -145,7 +153,7 @@ function resetPlayers(record: RoomRecord) {
 export function start(record: RoomRecord, playerId: string) {
     const player = requirePlayer(record, playerId)
     if (!player.isHost) throw new RoomError('มีแค่หัวตี้ที่กดเริ่มเกมได้', 403)
-    if (record.state.players.length < MIN_PLAYERS) {
+    if (record.state.players.length < MIN_TO_START) {
         throw new RoomError('ต้องมีอย่างน้อย 2 คนถึงจะเริ่มได้')
     }
 
@@ -156,6 +164,7 @@ export function start(record: RoomRecord, playerId: string) {
     state.deckCount = record.deck.length
     state.currentCard = null
     state.kingCount = 0
+    state.kingDecrees = []
     state.awaitingBuddy = false
     state.log = []
     resetPlayers(record)
@@ -184,7 +193,9 @@ export function draw(record: RoomRecord, playerId: string) {
     player.cardsDrawn += 1
 
     if (rule.action === 'hold') player.heldCards.push(card)
-    if (rule.action === 'buddy') state.awaitingBuddy = true
+    // With nobody else in the room there is no buddy to pick, and waiting for
+    // one would leave the turn stuck (only reachable while testing solo).
+    if (rule.action === 'buddy' && state.players.length > 1) state.awaitingBuddy = true
     if (rule.action === 'king') state.kingCount = Math.min(state.kingCount + 1, 4)
     // A new Q moves the "do not speak to them" status onto whoever just drew it.
     if (card.rank === 'Q') {
@@ -220,6 +231,32 @@ export function pickBuddy(record: RoomRecord, playerId: string, buddyId: string)
     bump(record)
 }
 
+function sanitizeDecree(raw: unknown): string {
+    if (typeof raw !== 'string') throw new RoomError('พิมพ์คำสั่งก่อนนะ')
+    const text = raw.trim().replace(/\s+/g, ' ').slice(0, KING_DECREE_MAX)
+    if (text.length < 1) throw new RoomError('พิมพ์คำสั่งก่อนนะ')
+    return text
+}
+
+/**
+ * Kings 1-3 each set one line of the order (what / where / how long). Only the
+ * player who drew the King may set it, and only for the King now on the table:
+ * `pendingKingStep` decides which, so a double tap cannot overwrite a line that
+ * is already in.
+ */
+export function setKingDecree(record: RoomRecord, playerId: string, rawText: unknown) {
+    const { state } = record
+    const step = pendingKingStep(state)
+    if (!step) throw new RoomError('ยังไม่ถึงจังหวะสั่งของราชา')
+    const player = requireCurrentPlayer(record, playerId)
+
+    state.kingDecrees = [
+        ...state.kingDecrees,
+        { step, text: sanitizeDecree(rawText), playerId: player.id, playerName: player.name },
+    ]
+    bump(record)
+}
+
 export function useHeldCard(record: RoomRecord, playerId: string, cardId: string) {
     const player = requirePlayer(record, playerId)
     const index = player.heldCards.findIndex((c) => c.id === cardId)
@@ -232,6 +269,7 @@ export function endTurn(record: RoomRecord, playerId: string) {
     const { state } = record
     if (state.phase !== 'revealed') throw new RoomError('ยังไม่ได้เปิดไพ่')
     if (state.awaitingBuddy) throw new RoomError('เลือกบัดดี้ก่อนถึงจะจบตาได้')
+    if (pendingKingStep(state)) throw new RoomError('สั่งในฐานะราชาก่อนถึงจะจบตาได้')
     requireCurrentPlayer(record, playerId)
 
     state.currentCard = null
@@ -284,6 +322,16 @@ export function leave(record: RoomRecord, playerId: string): boolean {
     return false
 }
 
+/**
+ * The host closes the whole group. Nothing to mutate: the caller deletes the
+ * room, and everyone else's next poll 404s and lands on the "room is gone"
+ * screen. Kept here so the permission check sits with the other rules.
+ */
+export function cancel(record: RoomRecord, playerId: string) {
+    const player = requirePlayer(record, playerId)
+    if (!player.isHost) throw new RoomError('มีแค่หัวตี้ที่ยกเลิกวงได้', 403)
+}
+
 export function restart(record: RoomRecord, playerId: string) {
     const player = requirePlayer(record, playerId)
     if (!player.isHost) throw new RoomError('มีแค่หัวตี้ที่เริ่มรอบใหม่ได้', 403)
@@ -294,6 +342,7 @@ export function restart(record: RoomRecord, playerId: string) {
     state.currentCard = null
     state.awaitingBuddy = false
     state.kingCount = 0
+    state.kingDecrees = []
     state.log = []
     record.deck = buildDeck()
     state.deckCount = record.deck.length

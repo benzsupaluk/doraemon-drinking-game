@@ -100,6 +100,10 @@ function decodeRecord(code: string, raw: unknown): RoomRecord | null {
         throw new RoomError('ข้อมูลวงเสียหาย ลองสร้างวงใหม่นะ', 500)
     }
 
+    // A room that was already in play when a new field shipped has no value for
+    // it, so fill it in here rather than making every reader defensive.
+    value.state.kingDecrees ??= []
+
     return value
 }
 

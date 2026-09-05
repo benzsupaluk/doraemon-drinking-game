@@ -10,9 +10,13 @@ interface Props {
     code: string
     connection: 'connecting' | 'live' | 'lost'
     right?: React.ReactNode
+    /** Shows the leave/cancel button. Screens without one leave this out. */
+    onQuit?: () => void
+    /** Label for that button, since the host cancels the group instead of leaving. */
+    quitLabel?: string
 }
 
-export function RoomHeader({ code, connection, right }: Props) {
+export function RoomHeader({ code, connection, right, onQuit, quitLabel }: Props) {
     const [rulesOpen, setRulesOpen] = useState(false)
     const sound = useSoundEnabled()
 
@@ -29,7 +33,7 @@ export function RoomHeader({ code, connection, right }: Props) {
 
     return (
         <>
-            <header className="flex items-center justify-between gap-2 py-3">
+            <header className="flex items-center justify-between gap-2 py-1">
                 <div className="flex items-center gap-2">
                     <span className="text-[1.0625rem] font-semibold tracking-[0.16em]">{code}</span>
                     <span title={dot.label} className={`size-1.5 rounded-full ${dot.color}`} />
@@ -43,6 +47,11 @@ export function RoomHeader({ code, connection, right }: Props) {
                     <IconButton label="กฎการเล่น" onClick={() => setRulesOpen(true)}>
                         ?
                     </IconButton>
+                    {onQuit && (
+                        <IconButton label={quitLabel ?? 'ออกจากวง'} onClick={onQuit}>
+                            🔚
+                        </IconButton>
+                    )}
                 </div>
             </header>
             <RulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />

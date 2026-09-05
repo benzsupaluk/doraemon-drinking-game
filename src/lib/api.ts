@@ -24,9 +24,11 @@ export type GameAction =
     | { type: 'draw' }
     | { type: 'buddy'; buddyId: string }
     | { type: 'use-card'; cardId: string }
+    | { type: 'king-decree'; text: string }
     | { type: 'end-turn' }
     | { type: 'restart' }
     | { type: 'leave' }
+    | { type: 'cancel' }
 
 export function sendAction(code: string, playerId: string, action: GameAction) {
     return post<{ state: RoomState }>(`/api/rooms/${code}/action`, { ...action, playerId })
