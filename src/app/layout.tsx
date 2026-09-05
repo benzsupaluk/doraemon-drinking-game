@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Sans_Thai } from 'next/font/google'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import {
     AUTHOR,
@@ -72,6 +73,14 @@ export const metadata: Metadata = {
     formatDetection: { telephone: false },
 }
 
+/**
+ * GA4 measurement ID (`G-…`). Inlined at build time because it is
+ * `NEXT_PUBLIC_`, so it must be read as a literal property, not looked up
+ * dynamically. Left unset in dev and on previews so local play and preview
+ * deploys don't pollute the production property's numbers.
+ */
+const GA_ID = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim()
+
 export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
@@ -84,6 +93,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="th" className={thai.variable}>
             <body>{children}</body>
+            {/* After </body> so gtag.js never competes with the first paint. */}
+            {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}
         </html>
     )
 }
