@@ -4,6 +4,7 @@ import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import {
     AUTHOR,
+    GOOGLE_SITE_VERIFICATION,
     SITE_DESCRIPTION,
     SITE_KEYWORDS,
     SITE_NAME,
@@ -40,6 +41,7 @@ export const metadata: Metadata = {
     publisher: AUTHOR.name,
     alternates: { canonical: '/' },
     manifest: '/manifest.webmanifest',
+    verification: { google: GOOGLE_SITE_VERIFICATION },
     robots: {
         index: true,
         follow: true,

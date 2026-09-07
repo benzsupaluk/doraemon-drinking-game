@@ -21,6 +21,17 @@ export const SITE_URL = (
         : 'http://localhost:3000')
 ).replace(/\/$/, '')
 
+/**
+ * Google Search Console ownership token, rendered as
+ * `<meta name="google-site-verification">`.
+ *
+ * Not a secret — it ships in the HTML of every page and only proves control of
+ * the site to Google. Keep it in place for as long as the property exists:
+ * Search Console re-checks the tag and silently unverifies the property,
+ * dropping access to indexing and search-query data, if it goes missing.
+ */
+export const GOOGLE_SITE_VERIFICATION = 's0MJOxJ4ntMzVcafCB8qeNjIEiE8IFW-vpobV7msF5s'
+
 export const SITE_NAME = 'เกมส์โดรามอน'
 
 export const SITE_TITLE = 'เกมส์โดรามอน 🔔 เกมไพ่วงเหล้า เล่นพร้อมกันทั้งวงจากมือถือ'
