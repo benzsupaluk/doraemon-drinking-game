@@ -6,7 +6,6 @@ import {
     AUTHOR,
     GOOGLE_SITE_VERIFICATION,
     SITE_DESCRIPTION,
-    SITE_KEYWORDS,
     SITE_NAME,
     SITE_TITLE,
     SITE_URL,
@@ -33,7 +32,9 @@ export const metadata: Metadata = {
         template: `%s | ${SITE_NAME}`,
     },
     description: SITE_DESCRIPTION,
-    keywords: SITE_KEYWORDS,
+    // No `keywords`: Google has ignored the meta tag since 2009, and the only
+    // engines that still read it treat a long list as a spam signal. The terms
+    // that matter are in the headings and prose of the guide instead.
     applicationName: SITE_NAME,
     category: 'games',
     authors: [{ name: AUTHOR.name, url: AUTHOR.website }],

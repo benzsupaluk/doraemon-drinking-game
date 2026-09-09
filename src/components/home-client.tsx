@@ -149,10 +149,10 @@ export function HomeClient() {
             <RulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
             <p className="text-[0.875rem] text-muted/80 text-center">
-                ดื่มเพื่อความบันเทิง อย่าดื่มอย่างไร้สติเหมือนตอนไปรักเขา
+                ดื่มอย่างมีสติ อย่าให้เหมือนตอนไปรักเขา
             </p>
 
-            <footer className="app-shell pb-8 text-center text-[0.875rem] text-muted">
+            <div className="app-shell pb-8 text-center text-[0.875rem] text-muted">
                 โดย{' '}
                 <a
                     href={AUTHOR.instagram}
@@ -163,7 +163,7 @@ export function HomeClient() {
                     @benzsupalukk
                 </a>
                 🫦
-            </footer>
+            </div>
         </main>
     )
 }

@@ -1,5 +1,5 @@
 import { CARD_RULES, GLOBAL_RULES } from '@/lib/rules'
-import { FAQ, HOW_TO_STEPS } from '@/lib/site'
+import { FAQ, HOW_TO_STEPS, SITE_FEATURES } from '@/lib/site'
 import type { Rank } from '@/lib/types'
 
 const ORDER: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
@@ -16,18 +16,44 @@ export function GameGuide() {
     return (
         <section className="app-shell space-y-8 border-t border-line py-10 text-[0.9375rem] leading-relaxed">
             <div className="space-y-2">
-                <h2 className="text-[1.25rem] font-semibold">เกมส์โดรามอนคืออะไร</h2>
+                <h2 className="text-[1.25rem] font-semibold">
+                    เกมส์โดรามอน เกมไพ่วงเหล้ายอดฮิต คืออะไร
+                </h2>
                 <p className="text-muted">
-                    เกมส์โดรามอนคือเกมไพ่วงเหล้ายอดฮิตของไทย ใช้ไพ่หนึ่งสำรับวางกลางวง
-                    แล้วผลัดกันเปิดทีละใบ ไพ่แต่ละใบมีกติกาของตัวเอง
-                    ตั้งแต่ดื่มตามเลขหน้าไพ่ จับบัดดี้ เล่นเกมเลข 7 ไปจนถึงไพ่ราชาที่สั่งให้ทำอะไรก็ได้
+                    เกมส์โดรามอนคือเกมไพ่วงเหล้ายอดฮิตของไทย บางวงเรียกเกมไพ่โดราเอมอน
+                    บางวงเรียกเกมไพ่โดเรมอน แต่กติกาเหมือนกันหมด ใช้ไพ่หนึ่งสำรับวางกลางวง
+                    แล้วผลัดกันเปิดทีละใบ ไพ่แต่ละใบมีกติกาของตัวเอง ตั้งแต่ดื่มตามเลขหน้าไพ่
+                    จับบัดดี้ เล่นเกมเลข 7 ไปจนถึงไพ่ราชาที่สั่งให้ทำอะไรก็ได้
                     เว็บนี้ย้ายทั้งวงมาไว้บนมือถือ ไม่ต้องพกไพ่จริง ไม่ต้องจำกติกา
                     และไม่ต้องเถียงกันว่าใครจับบัดดี้กับใคร
                 </p>
             </div>
 
             <div className="space-y-3">
-                <h2 className="text-[1.25rem] font-semibold">วิธีเล่นเกมส์โดรามอน</h2>
+                <h2 className="text-[1.25rem] font-semibold">
+                    เล่นเกมไพ่วงเหล้า ฟรี ออนไลน์ ไม่ต้องโหลดแอป
+                </h2>
+                <p className="text-muted">
+                    เกมวงเหล้าส่วนใหญ่ต้องโหลดแอปหรือต้องมีไพ่จริงติดตัวไปด้วย เกมไพ่โดราเอมอน
+                    ออนไลน์บนเว็บนี้ไม่ต้องทั้งสองอย่าง
+                    หัวตี้กดสร้างวงแล้วส่งลิงก์เดียวเข้ากลุ่มไลน์ ใครกดก็เข้าวงได้ทันที
+                </p>
+                <ul className="space-y-2">
+                    {SITE_FEATURES.map((feature) => (
+                        <li key={feature} className="flex gap-3">
+                            <span className="shrink-0 text-accent" aria-hidden>
+                                ✓
+                            </span>
+                            <p className="min-w-0 text-muted">{feature}</p>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            <div className="space-y-3">
+                <h2 className="text-[1.25rem] font-semibold">
+                    วิธีเล่นเกมส์โดรามอน ออนไลน์ ทีละขั้น
+                </h2>
                 <ol className="space-y-2.5">
                     {HOW_TO_STEPS.map((step, index) => (
                         <li key={step.title} className="flex gap-3">
@@ -44,7 +70,12 @@ export function GameGuide() {
             </div>
 
             <div className="space-y-3">
-                <h2 className="text-[1.25rem] font-semibold">กติกาไพ่ทั้ง 13 ใบ</h2>
+                <h2 className="text-[1.25rem] font-semibold">กติกาเกมส์โดรามอน ครบทั้ง 13 ใบ</h2>
+                <p className="text-muted">
+                    ไพ่ทุกใบในสำรับมีกติกาของตัวเอง เปิดใบไหนก็ทำตามใบนั้น
+                    ระบบขึ้นกติกาให้อ่านบนไพ่ตอนเปิดอยู่แล้ว
+                    ตารางนี้ไว้ดูรวมก่อนเริ่มเล่นหรือตอนเถียงกันกลางวง
+                </p>
                 <ul className="divide-y divide-line">
                     {ORDER.map((rank) => {
                         const rule = CARD_RULES[rank]
@@ -77,7 +108,9 @@ export function GameGuide() {
             </div>
 
             <div className="space-y-2">
-                <h2 className="text-[1.25rem] font-semibold">คำถามที่พบบ่อย</h2>
+                <h2 className="text-[1.25rem] font-semibold">
+                    คำถามที่พบบ่อยเกี่ยวกับเกมไพ่วงเหล้า
+                </h2>
                 <div className="divide-y divide-line">
                     {FAQ.map((item) => (
                         <details key={item.question} className="group py-2.5">
@@ -91,11 +124,6 @@ export function GameGuide() {
                     ))}
                 </div>
             </div>
-
-            <p className="text-[0.875rem] text-muted/80">
-                ดื่มอย่างมีสติและเล่นกันเฉพาะผู้ที่อายุ 20 ปีขึ้นไปนะ
-                ทุกกติกาในเกมใช้กับน้ำเปล่าหรือการทำท่าตลกแทนการดื่มได้ทั้งหมด
-            </p>
         </section>
     )
 }

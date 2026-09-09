@@ -6,6 +6,7 @@ import {
     FAQ,
     HOW_TO_STEPS,
     SITE_DESCRIPTION,
+    SITE_FEATURES,
     SITE_NAME,
     SITE_TITLE,
     SITE_URL,
@@ -20,6 +21,8 @@ export default function HomePage() {
     return (
         <>
             <HomeClient />
+
+            <GameGuide />
 
             <StructuredData />
         </>
@@ -58,6 +61,7 @@ function StructuredData() {
             description: SITE_DESCRIPTION,
             applicationCategory: 'GameApplication',
             operatingSystem: 'Web browser (iOS, Android, desktop)',
+            featureList: SITE_FEATURES,
             browserRequirements: 'ต้องใช้เบราว์เซอร์ที่เปิด JavaScript',
             inLanguage: 'th-TH',
             numberOfPlayers: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 12 },
